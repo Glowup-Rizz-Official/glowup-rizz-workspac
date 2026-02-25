@@ -173,7 +173,6 @@ if "1️⃣" in app_mode:
             return True, avg_v, eff
         except: return False, 0, 0
 
-    # 🌟 새롭게 교체된 Apify 기반 SNS 스크래핑 엔진 🌟
     def scrape_sns_apify(platform, keyword, category, max_pages=3):
         influencers = []
         site_domain = "instagram.com" if platform == "Instagram" else "tiktok.com"
@@ -189,7 +188,6 @@ if "1️⃣" in app_mode:
         }
         
         try:
-            # Apify 구글 검색 스크래퍼 호출 (구글 캡차 자동 우회)
             run = apify_client.actor("apify/google-search-scraper").call(run_input=run_input)
             
             for item in apify_client.dataset(run["defaultDatasetId"]).iterate_items():
@@ -317,87 +315,97 @@ if "1️⃣" in app_mode:
             if not sender_pw: st.error("앱 비밀번호를 입력해주세요!")
             elif not selected_creators: st.warning("발송할 크리에이터를 1명 이상 선택해주세요.")
             else:
-                prog_bar = st.progress(0)
+                progress_bar = st.progress(0)
+                status_text = st.empty()
                 success_count = 0
+                
                 for idx, t_email in enumerate(selected_creators):
                     c_name = df_pending[df_pending['email']==t_email]['channel_name'].values[0]
-                    msg = MIMEMultipart('related')
-                    msg['From'] = sender_email
-                    msg['To'] = t_email
                     
-                    if "MELV" in template_choice:
-                        msg['Subject'] = Header(f"[MELV] {c_name}님, 멜브 첫 공식 런칭 제품 시딩 제안드립니다 💖", 'utf-8')
-                        body = f"""<div style="font-family: 'Apple SD Gothic Neo', sans-serif; line-height: 1.6; color: #222;">
-                        안녕하세요, {c_name}님!<br>
-                        뷰티 브랜드 MELV(멜브) MD {FIXED_SENDER_NAME}입니다. :)<br><br>
-                        이번 MELV의 첫 공식 런칭으로, 브랜드 무드와 가장 잘 어울리는 크리에이터분들께만 제일 빠르게! 런칭 제품을 선물 드리고 싶어 연락드렸습니다! 💖<br><br>
-                        <b>1. MELV 립시럽 (2종)</b><br>
-                        기존 글로우 립의 요플레 현상과 끈적임을 확실하게 잡았습니다.<br>
-                        특히 말랑한 물방울 실리콘 팁이 맑은 광택감을 온전히 살려주며, 호호바씨오일과 시어버터를 듬뿍 담아 단순히 겉광만 내는 것이 아니라 건조한 입술에 깊은 보습감까지 꽉 채워줍니다.<br><br>
-                        <b>2. MELV 립타투 (3종)</b><br>
-                        촌스러운 핑크 착색이 아닌, 감성적인 뮤티드 컬러로 뽑아낸 신개념 타투 립입니다.<br>
-                        밥을 먹거나 물놀이를 해도 쉽게 지워지지 않는 강력한 지속력을 자랑하며, 보습 성분(콜라겐, 펩타이드)을 함유하여 떼어낼 때 자극이 적고 건조함 없이 편안하게 마무리됩니다.<br>
-                        (자연스러운 오버립 연출로 중안부 여백을 예쁘게 커버해 줍니다!)<br><br>
-                        {c_name}님을 위해 아낌없이 전 컬러를 꽉 채워 보내드릴 예정입니다!<br>
-                        본 키트는 제품 협찬으로, 수령 후 인스타그램 피드 또는 스토리에 공식 계정(@melv.kr) 태그와 함께 업로드가 가능하신 분들께만 한정적으로 발송해 드리고 있습니다. 🙏<br>
-                        (선정된 소수의 분들께만 드리는 키트인 만큼, {c_name}님의 감각적인 후기를 꼭 보고 싶습니다...💖)<br><br>
-                        진행이 가능하시다면 받아보실 <b>[성함 / 연락처 / 주소]</b>를 남겨주세요. 정성껏 포장해서 보내드리겠습니다.<br><br>
-                        감사합니다!<br><br>
-                        <img src="cid:biz_card" alt="{FIXED_SENDER_NAME} 명함" style="max-width: 400px; border: 1px solid #eaeaea; border-radius: 4px;">
-                        </div>"""
-                        attach_images = ["melv1.jpg", "melv2.jpg"]
-                    else:
-                        msg['Subject'] = Header(f"[SOLV] {c_name}님, 솔브 첫 공식 런칭 에스테틱 모델링팩 시딩 제안드립니다 💖", 'utf-8')
-                        body = f"""<div style="font-family: 'Apple SD Gothic Neo', sans-serif; line-height: 1.6; color: #222;">
-                        안녕하세요, {c_name}님!<br>
-                        기초 뷰티 브랜드 SOLV(솔브) MD {FIXED_SENDER_NAME}입니다. :)<br><br>
-                        이번 SOLV의 첫 공식 런칭으로, 브랜드 무드와 가장 잘 어울리는 크리에이터분들께만 제일 빠르게! 런칭 제품을 선물 드리고 싶어 연락드렸습니다! 💖<br><br>
-                        <b>&lt;SOLV 모델링팩(5개입)&gt;</b><br>
-                        💧 <b>물 조절 실패 ZERO!</b><br>
-                        기존 모델링팩의 단점인 가루 날림과 번거로운 물 조절은 이제 그만! 베이스와 세럼을 섞기만 하면 되는 간편한 방식으로, 떼어낸 후에도 건조함 없이 피부 위 윤광 코팅 효과를 선사합니다.<br><br>
-                        ❄️ <b>에스테틱 급 쿨링 효과!</b><br>
-                        시중 모델링팩 중 쿨링 성분을 최대치로 담아, 열감으로 넓어진 모공과 예민해진 피부를 즉각적으로 진정시켜 에스테틱에서 관리받은 듯한 최상의 컨디션을 만들어줍니다.<br><br>
-                        💄 <b>화잘먹을 위한 필수템!</b><br>
-                        피부 온도가 낮아지면 베이스 메이크업의 밀착력이 달라집니다. 홈케어로 피부결을 정돈해 메이크업 시간과 화장품 비용을 획기적으로 줄여보세요.<br><br>
-                        <b>[사용 방법 & TIP]</b><br>
-                        팩볼에 1제+2제를 컵에 넣고 빠르게 섞어 스파출라로 펴 바른 뒤 완전히 마르면 제거해 주세요. (TIP: 가장자리는 두껍게 바르면 한 번에 깔끔하게 제거됩니다!)<br>
-                        남은 영양감은 툭툭 두드려 흡수해 주세요! 별도의 세안이 필요 없는 고영양 세럼 제형입니다.<br><br>
-                        본 제품은 협찬으로, 수령 후 인스타그램 피드 또는 스토리에 공식 계정(@solv.kr) 태그와 함께 업로드가 가능하신 분들께만 한정적으로 발송해 드리고 있습니다. 🙏<br>
-                        (선정된 소수의 분들께만 드리는 이벤트인 만큼, {c_name}님의 감각적인 후기를 꼭 보고 싶습니다...💖)<br><br>
-                        진행이 가능하시다면 받아보실 <b>[성함 / 연락처 / 주소]</b>를 남겨주세요. 정성껏 포장해서 보내드리겠습니다.<br><br>
-                        감사합니다!<br><br>
-                        <img src="cid:biz_card" alt="{FIXED_SENDER_NAME} 명함" style="max-width: 400px; border: 1px solid #eaeaea; border-radius: 4px;">
-                        </div>"""
-                        attach_images = ["solv1.jpg", "solv2.jpg"]
-
-                    msg.attach(MIMEMultipart('alternative')).attach(MIMEText(body, 'html', 'utf-8'))
+                    status_text.empty()
+                    status_text.write(f"[{idx+1}/{len(selected_creators)}] {c_name}님에게 발송 중...")
                     
-                    if os.path.exists(FIXED_CARD_PATH):
-                        with open(FIXED_CARD_PATH, "rb") as f:
-                            img_data = MIMEImage(f.read())
-                            img_data.add_header('Content-ID', '<biz_card>')
-                            msg.attach(img_data)
-                    
-                    for img_name in attach_images:
-                        if os.path.exists(img_name):
-                            with open(img_name, "rb") as f:
-                                part = MIMEApplication(f.read(), Name=img_name)
-                                part['Content-Disposition'] = f'attachment; filename="{img_name}"'
-                                msg.attach(part)
-
                     try:
+                        msg = MIMEMultipart('related')
+                        msg['From'] = sender_email
+                        msg['To'] = t_email
+                        
+                        if "MELV" in template_choice:
+                            msg['Subject'] = Header(f"[MELV] {c_name}님, 멜브 첫 공식 런칭 제품 시딩 제안드립니다 💖", 'utf-8')
+                            body = f"""<div style="font-family: 'Apple SD Gothic Neo', sans-serif; line-height: 1.6; color: #222;">
+                            안녕하세요, {c_name}님!<br>
+                            뷰티 브랜드 MELV(멜브) MD {FIXED_SENDER_NAME}입니다. :)<br><br>
+                            이번 MELV의 첫 공식 런칭으로, 브랜드 무드와 가장 잘 어울리는 크리에이터분들께만 제일 빠르게! 런칭 제품을 선물 드리고 싶어 연락드렸습니다! 💖<br><br>
+                            <b>1. MELV 립시럽 (2종)</b><br>
+                            기존 글로우 립의 요플레 현상과 끈적임을 확실하게 잡았습니다.<br>
+                            특히 말랑한 물방울 실리콘 팁이 맑은 광택감을 온전히 살려주며, 호호바씨오일과 시어버터를 듬뿍 담아 단순히 겉광만 내는 것이 아니라 건조한 입술에 깊은 보습감까지 꽉 채워줍니다.<br><br>
+                            <b>2. MELV 립타투 (3종)</b><br>
+                            촌스러운 핑크 착색이 아닌, 감성적인 뮤티드 컬러로 뽑아낸 신개념 타투 립입니다.<br>
+                            밥을 먹거나 물놀이를 해도 쉽게 지워지지 않는 강력한 지속력을 자랑하며, 보습 성분(콜라겐, 펩타이드)을 함유하여 떼어낼 때 자극이 적고 건조함 없이 편안하게 마무리됩니다.<br>
+                            (자연스러운 오버립 연출로 중안부 여백을 예쁘게 커버해 줍니다!)<br><br>
+                            {c_name}님을 위해 아낌없이 전 컬러를 꽉 채워 보내드릴 예정입니다!<br>
+                            본 키트는 제품 협찬으로, 수령 후 인스타그램 피드 또는 스토리에 공식 계정(@melv.kr) 태그와 함께 업로드가 가능하신 분들께만 한정적으로 발송해 드리고 있습니다. 🙏<br>
+                            (선정된 소수의 분들께만 드리는 키트인 만큼, {c_name}님의 감각적인 후기를 꼭 보고 싶습니다...💖)<br><br>
+                            진행이 가능하시다면 받아보실 <b>[성함 / 연락처 / 주소]</b>를 남겨주세요. 정성껏 포장해서 보내드리겠습니다.<br><br>
+                            감사합니다!<br><br>
+                            <img src="cid:biz_card" alt="{FIXED_SENDER_NAME} 명함" style="max-width: 400px; border: 1px solid #eaeaea; border-radius: 4px;">
+                            </div>"""
+                            attach_images = ["melv1.jpg", "melv2.jpg"]
+                        else:
+                            msg['Subject'] = Header(f"[SOLV] {c_name}님, 솔브 첫 공식 런칭 에스테틱 모델링팩 시딩 제안드립니다 💖", 'utf-8')
+                            body = f"""<div style="font-family: 'Apple SD Gothic Neo', sans-serif; line-height: 1.6; color: #222;">
+                            안녕하세요, {c_name}님!<br>
+                            기초 뷰티 브랜드 SOLV(솔브) MD {FIXED_SENDER_NAME}입니다. :)<br><br>
+                            이번 SOLV의 첫 공식 런칭으로, 브랜드 무드와 가장 잘 어울리는 크리에이터분들께만 제일 빠르게! 런칭 제품을 선물 드리고 싶어 연락드렸습니다! 💖<br><br>
+                            <b>&lt;SOLV 모델링팩(5개입)&gt;</b><br>
+                            💧 <b>물 조절 실패 ZERO!</b><br>
+                            기존 모델링팩의 단점인 가루 날림과 번거로운 물 조절은 이제 그만! 베이스와 세럼을 섞기만 하면 되는 간편한 방식으로, 떼어낸 후에도 건조함 없이 피부 위 윤광 코팅 효과를 선사합니다.<br><br>
+                            ❄️ <b>에스테틱 급 쿨링 효과!</b><br>
+                            시중 모델링팩 중 쿨링 성분을 최대치로 담아, 열감으로 넓어진 모공과 예민해진 피부를 즉각적으로 진정시켜 에스테틱에서 관리받은 듯한 최상의 컨디션을 만들어줍니다.<br><br>
+                            💄 <b>화잘먹을 위한 필수템!</b><br>
+                            피부 온도가 낮아지면 베이스 메이크업의 밀착력이 달라집니다. 홈케어로 피부결을 정돈해 메이크업 시간과 화장품 비용을 획기적으로 줄여보세요.<br><br>
+                            <b>[사용 방법 & TIP]</b><br>
+                            팩볼에 1제+2제를 컵에 넣고 빠르게 섞어 스파출라로 펴 바른 뒤 완전히 마르면 제거해 주세요. (TIP: 가장자리는 두껍게 바르면 한 번에 깔끔하게 제거됩니다!)<br>
+                            남은 영양감은 툭툭 두드려 흡수해 주세요! 별도의 세안이 필요 없는 고영양 세럼 제형입니다.<br><br>
+                            본 제품은 협찬으로, 수령 후 인스타그램 피드 또는 스토리에 공식 계정(@solv.kr) 태그와 함께 업로드가 가능하신 분들께만 한정적으로 발송해 드리고 있습니다. 🙏<br>
+                            (선정된 소수의 분들께만 드리는 이벤트인 만큼, {c_name}님의 감각적인 후기를 꼭 보고 싶습니다...💖)<br><br>
+                            진행이 가능하시다면 받아보실 <b>[성함 / 연락처 / 주소]</b>를 남겨주세요. 정성껏 포장해서 보내드리겠습니다.<br><br>
+                            감사합니다!<br><br>
+                            <img src="cid:biz_card" alt="{FIXED_SENDER_NAME} 명함" style="max-width: 400px; border: 1px solid #eaeaea; border-radius: 4px;">
+                            </div>"""
+                            attach_images = ["solv1.jpg", "solv2.jpg"]
+
+                        msg.attach(MIMEMultipart('alternative')).attach(MIMEText(body, 'html', 'utf-8'))
+                        
+                        if os.path.exists(FIXED_CARD_PATH):
+                            with open(FIXED_CARD_PATH, "rb") as f:
+                                img_data = MIMEImage(f.read())
+                                img_data.add_header('Content-ID', '<biz_card>')
+                                msg.attach(img_data)
+                        
+                        for img_name in attach_images:
+                            if os.path.exists(img_name):
+                                with open(img_name, "rb") as f:
+                                    part = MIMEApplication(f.read(), Name=img_name)
+                                    part['Content-Disposition'] = f'attachment; filename="{img_name}"'
+                                    msg.attach(part)
+
                         server = smtplib.SMTP('smtp.gmail.com', 587)
                         server.starttls()
                         server.login(sender_email, sender_pw.replace(' ', ''))
                         server.send_message(msg)
                         server.quit()
+                        
                         update_creator_status(t_email, '발송완료')
                         success_count += 1
                         time.sleep(2)
                     except Exception as e:
                         st.error(f"{t_email} 발송 실패: {e}")
                     
-                    prog_bar.progress((idx + 1) / len(selected_creators))
+                    progress_bar.progress((idx + 1) / len(selected_creators))
+                
+                status_text.empty()
+                time.sleep(0.5)
                 st.success(f"🎉 총 {success_count}명의 크리에이터에게 시딩 제안 메일을 성공적으로 발송했습니다!")
 
     with tab_db:
@@ -448,7 +456,6 @@ elif "2️⃣" in app_mode:
             }
         }
 
-    # 🌟 B2B 스마트스토어 메일 수집도 Apify 엔진으로 교체 🌟
     def scrape_smartstore_apify(keyword, max_pages=3):
         new_targets = []
         df = load_brand_db()
@@ -506,14 +513,19 @@ elif "2️⃣" in app_mode:
         
         if st.button("수집 시작", type="primary"):
             if keyword:
-                with st.spinner("Apify 엔진을 통해 스마트스토어 메일을 빠르고 안전하게 수집 중입니다..."):
-                    new_data = scrape_smartstore_apify(keyword, max_pages)
+                log_box = st.empty()
+                log_box.empty()
+                log_box.info("Apify 엔진을 통해 스마트스토어 메일을 빠르고 안전하게 수집 중입니다...")
                 
+                new_data = scrape_smartstore_apify(keyword, max_pages)
+                
+                log_box.empty()
                 if new_data:
                     df = load_brand_db()
                     df = pd.concat([df, pd.DataFrame(new_data)], ignore_index=True)
                     save_brand_db(df)
                     st.success(f"🎉 총 {len(new_data)}개의 새로운 타겟을 찾아 DB에 추가했습니다!")
+                    time.sleep(0.5)
                     st.balloons()
                 else:
                     st.warning("새로운 타겟을 찾지 못했거나 이미 모두 수집된 메일들입니다.")
@@ -551,11 +563,16 @@ elif "2️⃣" in app_mode:
             elif not has_card: st.error("명함 파일이 없습니다.")
             elif len(target_df) == 0: st.info("새로 보낼 타겟이 없습니다.")
             else:
-                progress_bar, status_text = st.progress(0), st.empty()
+                progress_bar = st.progress(0)
+                status_text = st.empty()
                 success_count = 0
+                
                 for i, idx in enumerate(target_df.index):
                     to_email = df.at[idx, 'Email'].replace(' ', '').strip()
+                    
+                    status_text.empty()
                     status_text.write(f"[{i+1}/{len(target_df)}] {to_email} 발송 중...")
+                    
                     try:
                         msg = MIMEMultipart('related')
                         msg['From'], msg['To'], msg['Subject'] = sender_email, to_email, Header(selected_template['subject'], 'utf-8')
@@ -578,8 +595,12 @@ elif "2️⃣" in app_mode:
                         success_count += 1
                         time.sleep(2)
                     except Exception as e: st.error(f"{to_email} 발송 실패: {e}")
+                    
                     progress_bar.progress((i + 1) / len(target_df))
-                status_text.success(f"🎉 총 {success_count}곳에 제안서 발송 완료!")
+                
+                status_text.empty()
+                time.sleep(0.5)
+                st.success(f"🎉 총 {success_count}곳에 제안서 발송 완료!")
 
     with tab_crm:
         st.subheader("📊 B2B 콜드메일 CRM 데이터베이스")
