@@ -176,15 +176,17 @@ if "1️⃣" in app_mode:
     def scrape_sns_apify(platform, keyword, category, max_pages=3):
         influencers = []
         site_domain = "instagram.com" if platform == "Instagram" else "tiktok.com"
-        search_query = f"site:{site_domain} {keyword} \"@\""
-        if platform == "Instagram": search_query += " -\"/p/\" -\"/reels/\" -\"/tags/\""
-        else: search_query += " -\"/video/\""
+        search_query = f"site:{site_domain} {keyword} @"
+        if platform == "Instagram": search_query += " -/p/ -/reels/ -/tags/"
+        else: search_query += " -/video/"
         email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
 
         run_input = {
             "queries": search_query,
             "maxPagesPerQuery": max_pages,
-            "resultsPerPage": 10,
+            "resultsPerPage": 20,
+            "countryCode": "kr",
+            "languageCode": "ko"
         }
         
         try:
@@ -462,20 +464,27 @@ elif "2️⃣" in app_mode:
         existing_emails = set(df['Email'].tolist())
         
         run_input = {
-            "queries": f"site:smartstore.naver.com \"{keyword}\"",
+            "queries": f"site:smartstore.naver.com {keyword}",
             "maxPagesPerQuery": max_pages,
-            "resultsPerPage": 10,
+            "resultsPerPage": 20,
+            "countryCode": "kr",
+            "languageCode": "ko"
         }
         
         try:
             run = apify_client.actor("apify/google-search-scraper").call(run_input=run_input)
+            total_organic_results = 0
+            
             for item in apify_client.dataset(run["defaultDatasetId"]).iterate_items():
-                for res in item.get("organicResults", []):
+                results = item.get("organicResults", [])
+                total_organic_results += len(results)
+                
+                for res in results:
                     text_content = res.get("url", "") + " " + res.get("description", "")
                     store_ids = re.findall(r"smartstore\.naver\.com/([a-zA-Z0-9_-]+)", text_content)
                     
                     for sid in set(store_ids):
-                        if sid.lower() not in ['category', 'notice', 'profile', 'best', 'products', 'search']:
+                        if sid.lower() not in ['category', 'notice', 'profile', 'best', 'products', 'search', 'main']:
                             email = f"{sid}@naver.com".lower()
                             if email not in existing_emails:
                                 existing_emails.add(email)
@@ -483,6 +492,12 @@ elif "2️⃣" in app_mode:
                                     "Email": email, "Keyword": keyword, "Discovered_Date": datetime.now().strftime("%Y-%m-%d"), 
                                     "Last_Sent_Date": "", "Send_Count": 0, "Template_Used": ""
                                 })
+                                
+            if total_organic_results == 0:
+                st.warning(f"⚠️ Apify가 구글에서 '{keyword}' 관련 스마트스토어 검색 결과를 한 건도 찾지 못했습니다.")
+            else:
+                st.info(f"💡 구글 검색 결과 {total_organic_results}건의 사이트를 분석했습니다.")
+                
         except Exception as e:
             st.error(f"Apify 검색 중 오류 발생: {e}")
             
