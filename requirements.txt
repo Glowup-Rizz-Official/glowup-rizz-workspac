@@ -2,7 +2,6 @@ streamlit
 pandas
 requests
 beautifulsoup4
-selenium
-webdriver-manager
 google-api-python-client
 google-generativeai
+apify-client
