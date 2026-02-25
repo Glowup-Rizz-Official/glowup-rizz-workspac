@@ -176,9 +176,16 @@ if "1️⃣" in app_mode:
     def scrape_sns_apify(platform, keyword, category, max_pages=3):
         influencers = []
         site_domain = "instagram.com" if platform == "Instagram" else "tiktok.com"
-        search_query = f"site:{site_domain} {keyword} @"
-        if platform == "Instagram": search_query += " -/p/ -/reels/ -/tags/"
-        else: search_query += " -/video/"
+        
+        # 🌟 핵심: 회사 도메인까지 모두 찾기 위한 '연락처 키워드' 포괄 조합 🌟
+        search_query = f'site:{site_domain} "{keyword}" ("@gmail.com" OR "@naver.com" OR "이메일" OR "email" OR "contact" OR "문의" OR "협찬" OR "비즈니스")'
+        
+        if platform == "Instagram": 
+            search_query += " -inurl:p -inurl:reels -inurl:tags -inurl:explore"
+        else: 
+            search_query += " -inurl:video"
+            
+        # 이 정규식 필터가 회사 도메인이든 뭐든 이메일 형태면 다 잡아냅니다.
         email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
 
         run_input = {
@@ -275,7 +282,7 @@ if "1️⃣" in app_mode:
                     st.dataframe(df_ig, column_config={"URL": st.column_config.LinkColumn("이동")}, use_container_width=True)
                     for _, row in df_ig.iterrows(): save_creator_to_db(row['플랫폼'], row['카테고리'], row['채널명'], row['이메일'], row['URL'], 0, row['소개글'])
                 else:
-                    st.warning("수집된 데이터가 없습니다.")
+                    st.warning("수집된 데이터가 없습니다. 다른 검색어를 시도해보세요.")
 
     with tab_tk:
         st.subheader("틱톡 크리에이터 발굴 (Apify 엔진)")
@@ -308,8 +315,12 @@ if "1️⃣" in app_mode:
             st.write(f"🪪 **첨부 명함:** `{FIXED_CARD_PATH}`")
             
         c1, c2 = st.columns(2)
-        with c1: sender_email = st.text_input("보내는 사람 구글 이메일", value="rizzsender@gmail.com")
-        with c2: sender_pw = st.text_input("구글 앱 비밀번호 16자리", type="password")
+        # Secrets에 저장된 이메일과 비밀번호를 자동으로 불러옴 (편의성 극대화)
+        default_email = st.secrets.get("SENDER_EMAIL", "rizzsender@gmail.com")
+        default_pw = st.secrets.get("SENDER_PW", "")
+        
+        with c1: sender_email = st.text_input("보내는 사람 구글 이메일", value=default_email)
+        with c2: sender_pw = st.text_input("구글 앱 비밀번호 16자리", type="password", value=default_pw)
 
         selected_creators = st.multiselect("발송할 크리에이터 이메일 선택 (채널명 표시)", df_pending['email'].tolist(), format_func=lambda x: f"{df_pending[df_pending['email']==x]['channel_name'].values[0]} ({x})")
 
@@ -565,9 +576,12 @@ elif "2️⃣" in app_mode:
             if has_card: preview_body = preview_body.replace('cid:biz_card', f'data:image/png;base64,{get_image_base64(card_path)}')
             st.components.v1.html(preview_body, height=400, scrolling=True)
         
-        col1, col2 = st.columns(2)
-        with col1: sender_email = st.text_input("보내는 사람 구글 이메일", value="rizzsender@gmail.com")
-        with col2: sender_pw = st.text_input("구글 앱 비밀번호 16자리", type="password")
+        c1, c2 = st.columns(2)
+        default_email = st.secrets.get("SENDER_EMAIL", "rizzsender@gmail.com")
+        default_pw = st.secrets.get("SENDER_PW", "")
+        
+        with c1: sender_email = st.text_input("보내는 사람 구글 이메일", value=default_email)
+        with c2: sender_pw = st.text_input("구글 앱 비밀번호 16자리", type="password", value=default_pw)
         
         df = load_brand_db()
         target_df = df[(df['Last_Sent_Date'].isna()) | (df['Last_Sent_Date'] == "") | (df['Send_Count'] == 0)]
