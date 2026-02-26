@@ -178,7 +178,7 @@ if "1️⃣" in app_mode:
         site_domain = "instagram.com" if platform == "Instagram" else "tiktok.com"
         
         # 🌟 핵심: 회사 도메인까지 모두 찾기 위한 '연락처 키워드' 포괄 조합 🌟
-        search_query = f'site:{site_domain} "{keyword}" ("@gmail.com" OR "@naver.com" OR "이메일" OR "email" OR "contact" OR "문의" OR "협찬" OR "비즈니스")'
+        search_query = f'site:{site_domain} {keyword} ("@gmail.com" OR "@naver.com" OR "이메일" OR "email" OR "mail" OR "contact" OR "문의" OR "협찬" OR "비즈니스")'
         
         if platform == "Instagram": 
             search_query += " -inurl:p -inurl:reels -inurl:tags -inurl:explore"
