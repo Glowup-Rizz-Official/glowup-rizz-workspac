@@ -177,14 +177,13 @@ if "1️⃣" in app_mode:
         influencers = []
         site_domain = "instagram.com" if platform == "Instagram" else "tiktok.com"
         
-        # 🌟 핵심 개선: 이메일/협찬 키워드는 잡고, '오프라인 샵/예약' 관련 단어는 강력하게 제외(-)
         contact_keywords = '("@gmail.com" OR "@naver.com" OR "이메일" OR "email" OR "협찬" OR "dm")'
-        exclude_shops = '-"예약" -"오픈카톡" -"카카오채널" -"스튜디오" -"원장" -"살롱" -"클래스" -"진단"'
+        exclude_shops = '-"예약" -"오픈카톡" -"카카오채널" -"스튜디오" -"원장" -"살롱" -"클래스" -"진단" -"공식" -"official"'
         
         search_query = f'site:{site_domain} {keyword} {contact_keywords} {exclude_shops}'
         
         if platform == "Instagram": 
-            search_query += " -inurl:p -inurl:reels -inurl:tags -inurl:explore"
+            search_query += " -inurl:p -inurl:reels -inurl:reel -inurl:tags -inurl:explore"
         else: 
             search_query += " -inurl:video"
             
@@ -206,9 +205,20 @@ if "1️⃣" in app_mode:
                     snippet = res.get("description", "")
                     link = res.get("url", "")
                     
+                    # 🛡️ 파이썬 자체 이중 필터 (구글이 놓친 찌꺼기 완벽 제거)
+                    link_lower = link.lower()
+                    if "/p/" in link_lower or "/reel" in link_lower or "/tv/" in link_lower or "/tags/" in link_lower:
+                        continue # 게시물 링크면 버림
+                        
                     emails = re.findall(email_pattern, snippet)
                     if emails and site_domain in link:
                         channel_name = link.split(f"{site_domain}/")[-1].replace("/", "").replace("@", "")
+                        
+                        # 🛡️ 아이디에 공식 브랜드 느낌이 나면 버림
+                        channel_lower = channel_name.lower()
+                        if "official" in channel_lower or "shop" in channel_lower or "store" in channel_lower or "brand" in channel_lower:
+                            continue
+                            
                         influencers.append({"플랫폼": platform, "카테고리": category, "채널명": channel_name, "이메일": emails[0], "URL": link, "소개글": snippet})
         except Exception as e:
             st.error(f"Apify 검색 중 오류 발생: {e}")
