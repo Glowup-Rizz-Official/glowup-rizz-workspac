@@ -177,15 +177,17 @@ if "1️⃣" in app_mode:
         influencers = []
         site_domain = "instagram.com" if platform == "Instagram" else "tiktok.com"
         
-        # 🌟 핵심: 회사 도메인까지 모두 찾기 위한 '연락처 키워드' 포괄 조합 🌟
-        search_query = f'site:{site_domain} {keyword} ("@gmail.com" OR "@naver.com" OR "이메일" OR "email" OR "mail" OR "contact" OR "문의" OR "협찬" OR "비즈니스")'
+        # 🌟 핵심 개선: 이메일/협찬 키워드는 잡고, '오프라인 샵/예약' 관련 단어는 강력하게 제외(-)
+        contact_keywords = '("@gmail.com" OR "@naver.com" OR "이메일" OR "email" OR "협찬" OR "dm")'
+        exclude_shops = '-"예약" -"오픈카톡" -"카카오채널" -"스튜디오" -"원장" -"살롱" -"클래스" -"진단"'
+        
+        search_query = f'site:{site_domain} {keyword} {contact_keywords} {exclude_shops}'
         
         if platform == "Instagram": 
             search_query += " -inurl:p -inurl:reels -inurl:tags -inurl:explore"
         else: 
             search_query += " -inurl:video"
             
-        # 이 정규식 필터가 회사 도메인이든 뭐든 이메일 형태면 다 잡아냅니다.
         email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
 
         run_input = {
