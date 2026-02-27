@@ -205,16 +205,20 @@ if "1️⃣" in app_mode:
                     snippet = res.get("description", "")
                     link = res.get("url", "")
                     
-                    # 🛡️ 파이썬 자체 이중 필터 (구글이 놓친 찌꺼기 완벽 제거)
+                    # 🛡️ 1차 방어: 한글 판독기 (소개글에 한글이 아예 없으면 100% 외국 계정이므로 버림)
+                    if not re.search(r'[가-힣]', snippet):
+                        continue
+                        
+                    # 🛡️ 2차 방어: 구글이 놓친 게시물 링크 찌꺼기 제거
                     link_lower = link.lower()
                     if "/p/" in link_lower or "/reel" in link_lower or "/tv/" in link_lower or "/tags/" in link_lower:
-                        continue # 게시물 링크면 버림
+                        continue 
                         
                     emails = re.findall(email_pattern, snippet)
                     if emails and site_domain in link:
                         channel_name = link.split(f"{site_domain}/")[-1].replace("/", "").replace("@", "")
                         
-                        # 🛡️ 아이디에 공식 브랜드 느낌이 나면 버림
+                        # 🛡️ 3차 방어: 공식 브랜드/쇼핑몰 느낌이 나면 버림
                         channel_lower = channel_name.lower()
                         if "official" in channel_lower or "shop" in channel_lower or "store" in channel_lower or "brand" in channel_lower:
                             continue
