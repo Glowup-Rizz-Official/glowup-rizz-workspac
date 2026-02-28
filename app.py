@@ -61,7 +61,6 @@ def init_creator_db():
 def save_creator_to_db(platform, category, channel_name, email, url, subscribers, description):
     conn = sqlite3.connect('influencer_db.db')
     c = conn.cursor()
-    # 이메일 중복 체크로 변경 (안정성)
     c.execute("SELECT id FROM influencers WHERE email=?", (email,))
     if not c.fetchone():
         c.execute("INSERT INTO influencers (platform, category, channel_name, email, url, subscribers, description, collected_at, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '대기')",
@@ -168,6 +167,21 @@ if "1️⃣" in app_mode:
             return res if "@" in res else ""
         except: return ""
 
+    def check_performance(up_id, subs):
+        try:
+            manage_api_quota(yt_add=1)
+            req = YOUTUBE.playlistItems().list(part="contentDetails", playlistId=up_id, maxResults=10).execute()
+            v_ids = [i['contentDetails']['videoId'] for i in req.get('items', [])]
+            if not v_ids: return False, 0, 0
+            manage_api_quota(yt_add=1)
+            v_res = YOUTUBE.videos().list(part="statistics,contentDetails", id=",".join(v_ids)).execute()
+            longforms = [v for v in v_res['items'] if 'M' in v['contentDetails']['duration'] or 'H' in v['contentDetails']['duration']]
+            if not longforms: return False, 0, 0
+            avg_v = sum(int(v['statistics'].get('viewCount', 0)) for v in longforms) / len(longforms)
+            eff = avg_v / subs if subs > 0 else 0
+            return True, avg_v, eff
+        except: return False, 0, 0
+
     def scrape_sns_apify(platform, keyword, category, max_pages=10):
         influencers = []
         site_domain = "instagram.com" if platform == "Instagram" else "tiktok.com"
@@ -206,27 +220,33 @@ if "1️⃣" in app_mode:
                     if emails and site_domain in link:
                         target_email = emails[0]
                         
-                        # 🌟 [개선] 릴스에서도 닉네임을 찾아내는 스마트 아이디 추출 시스템 🌟
+                        # 🌟 닉네임(디스플레이 네임) 스마트 추출 🌟
                         extracted_id = ""
+                        display_name = ""
                         
-                        # 1순위: 구글 제목의 괄호 (@아이디) 추출
-                        username_match = re.search(r'\(@([a-zA-Z0-9._]+)\)', title)
-                        if username_match:
-                            extracted_id = username_match.group(1)
-                        
-                        # 2순위: 릴스 링크가 아닐 경우 URL에서 추출
+                        # "닉네임 (@아이디)" 형태 분리
+                        name_match = re.search(r'^(.*?)\s*\(@([a-zA-Z0-9._]+)\)', title)
+                        if name_match:
+                            raw_name = name_match.group(1).strip()
+                            extracted_id = name_match.group(2).strip()
+                            
+                            # 지저분한 수식어(- Instagram 등) 제거
+                            clean_name = re.sub(r'(-|\||•).*$', '', raw_name).strip()
+                            clean_name = clean_name.replace("Instagram의", "").replace("님의", "").replace("게시물", "").strip()
+                            display_name = clean_name
+
+                        # 괄호 형태가 없으면 URL에서 아이디라도 가져오기
                         if not extracted_id:
                             parts = link.split(f"{site_domain}/")[-1].split("/")
-                            if parts and parts[0] not in ['p', 'reel', 'reels', 'tv']:
+                            if parts and parts[0] not in ['p', 'reel', 'reels', 'tv', 'video', 'tag']:
                                 extracted_id = parts[0].replace("@", "")
                         
-                        # 3순위 (최후의 수단): 이메일의 앞부분을 아이디로 간주
-                        if not extracted_id or "링크참고" in extracted_id:
-                            extracted_id = target_email.split('@')[0]
-                            
-                        channel_name = extracted_id
+                        # 이름이 없으면 아이디를 쓰고, 둘 다 없으면 이메일 앞부분 사용
+                        channel_name = display_name if display_name else extracted_id
+                        if not channel_name or "링크참고" in channel_name:
+                            channel_name = target_email.split('@')[0]
                         
-                        # 블랙리스트 필터
+                        # 블랙리스트 필터 (닉네임, 아이디, 소개글 모두 검사)
                         is_blacklisted = any(word in channel_name.lower() for word in blacklist_words) or \
                                          any(word in snippet.lower() for word in blacklist_words) or \
                                          any(word in title.lower() for word in blacklist_words)
@@ -239,7 +259,6 @@ if "1️⃣" in app_mode:
         return pd.DataFrame(influencers).drop_duplicates(subset=['이메일'])
 
     def get_seeding_template(template_choice, c_name, sender_name):
-        # OOO님 호칭이 어색하지 않게 처리
         display_name = c_name if c_name else "크리에이터"
         
         if "MELV" in template_choice:
@@ -275,6 +294,9 @@ if "1️⃣" in app_mode:
             시중 모델링팩 중 쿨링 성분을 최대치로 담아, 열감으로 넓어진 모공과 예민해진 피부를 즉각적으로 진정시켜 에스테틱에서 관리받은 듯한 최상의 컨디션을 만들어줍니다.<br><br>
             💄 <b>화잘먹을 위한 필수템!</b><br>
             피부 온도가 낮아지면 베이스 메이크업의 밀착력이 달라집니다. 홈케어로 피부결을 정돈해 메이크업 시간과 화장품 비용을 획기적으로 줄여보세요.<br><br>
+            <b>[사용 방법 & TIP]</b><br>
+            팩볼에 1제+2제를 컵에 넣고 빠르게 섞어 스파출라로 펴 바른 뒤 완전히 마르면 제거해 주세요. (TIP: 가장자리는 두껍게 바르면 한 번에 깔끔하게 제거됩니다!)<br>
+            남은 영양감은 툭툭 두드려 흡수해 주세요! 별도의 세안이 필요 없는 고영양 세럼 제형입니다.<br><br>
             본 제품은 협찬으로, 수령 후 인스타그램 피드 또는 스토리에 공식 계정(@solv.kr) 태그와 함께 업로드가 가능하신 분들께만 한정적으로 발송해 드리고 있습니다. 🙏<br>
             (선정된 소수의 분들께만 드리는 이벤트인 만큼, {display_name}님의 감각적인 후기를 꼭 보고 싶습니다...💖)<br><br>
             진행이 가능하시다면 받아보실 <b>[성함 / 연락처 / 주소]</b>를 남겨주세요. 정성껏 포장해서 보내드리겠습니다.<br><br>
@@ -310,10 +332,10 @@ if "1️⃣" in app_mode:
             cat_ig = st.selectbox("분류 카테고리", CATEGORIES)
             pages_ig = st.number_input("검색 깊이 (페이지 수)", 1, 30, 10)
             if st.form_submit_button("🚀 인스타 검색 시작") and kw_ig:
-                with st.spinner("릴스 및 게시물 데이터를 분석하며 아이디를 추출 중입니다..."):
+                with st.spinner("릴스 및 게시물 데이터를 분석하며 이름을 추출 중입니다..."):
                     df_ig = scrape_sns_apify("Instagram", kw_ig, cat_ig, pages_ig)
                 if not df_ig.empty:
-                    st.success(f"이메일과 아이디가 확인된 {len(df_ig)}명을 찾았습니다.")
+                    st.success(f"이메일과 이름이 확인된 {len(df_ig)}명을 찾았습니다.")
                     st.dataframe(df_ig, column_config={"URL": st.column_config.LinkColumn("이동")}, use_container_width=True)
                     for _, row in df_ig.iterrows(): save_creator_to_db(row['플랫폼'], row['카테고리'], row['채널명'], row['이메일'], row['URL'], 0, row['소개글'])
                 else: st.warning("수집된 데이터가 없습니다.")
@@ -334,51 +356,102 @@ if "1️⃣" in app_mode:
 
     with tab_mail:
         st.subheader("💌 크리에이터 시딩 제안 메일 발송")
+        
         conn = sqlite3.connect('influencer_db.db')
-        df_pending = pd.read_sql_query("SELECT platform, channel_name, email FROM influencers WHERE status='대기'", conn)
+        df_pending = pd.read_sql_query("SELECT id, platform, channel_name, email FROM influencers WHERE status='대기'", conn)
         conn.close()
         
-        st.info(f"발송 대기 중: **{len(df_pending)}명**")
-        template_choice = st.radio("시딩 템플릿 선택", ["1. MELV (립시럽/립타투)", "2. SOLV (모델링팩)", "3. UPPR (볼캡/체크셔츠)"])
+        st.info(f"현재 발송 대기 중인 크리에이터: **{len(df_pending)}명**")
         
-        subject_p, body_p, _ = get_seeding_template(template_choice, "아이디", FIXED_SENDER_NAME)
-        with st.expander("👀 발송될 메일 미리보기"):
+        col_t1, col_t2 = st.columns(2)
+        with col_t1: template_choice = st.radio("시딩 템플릿 선택", ["1. MELV (립시럽/립타투)", "2. SOLV (모델링팩)", "3. UPPR (볼캡/체크셔츠)"])
+        with col_t2: 
+            st.write(f"🪪 **고정 발신자:** {FIXED_SENDER_NAME}")
+            st.write(f"🪪 **첨부 명함:** `{FIXED_CARD_PATH}`")
+            
+        subject_p, body_p, _ = get_seeding_template(template_choice, "OOO(이름)", FIXED_SENDER_NAME)
+        with st.expander("👀 발송될 메일 미리보기 (선택한 이름으로 자동 치환됩니다)"):
             st.markdown(f"**제목:** {subject_p}")
             preview_html = body_p
             if os.path.exists(FIXED_CARD_PATH):
                 preview_html = preview_html.replace('cid:biz_card', f'data:image/png;base64,{get_image_base64(FIXED_CARD_PATH)}')
             st.components.v1.html(preview_html, height=350, scrolling=True)
 
-        c1, c2 = st.columns(2)
-        sender_email = st.text_input("보내는 이메일", value=st.secrets.get("SENDER_EMAIL", "rizzsender@gmail.com"))
-        sender_pw = st.text_input("앱 비밀번호", type="password", value=st.secrets.get("SENDER_PW", ""))
-        selected_creators = st.multiselect("발송 대상 선택", df_pending['email'].tolist(), format_func=lambda x: f"{df_pending[df_pending['email']==x]['channel_name'].values[0]} ({x})")
+        st.markdown("### ✍️ 발송 대상 선택 및 이름 수정")
+        st.caption("표에서 '선택' 박스를 체크하세요. 이름이 이상하면 **'이름(채널명)' 칸을 더블클릭해서 직접 수정**하신 후 발송할 수 있습니다!")
+        
+        # 🌟 혁신 기능: 발송 전 이름 수정이 가능한 에디터 🌟
+        if not df_pending.empty:
+            df_pending.insert(0, '발송선택', False)
+            
+            edited_send_df = st.data_editor(
+                df_pending,
+                column_config={
+                    "발송선택": st.column_config.CheckboxColumn("✅ 선택", default=False),
+                    "channel_name": st.column_config.TextColumn("📝 이름/채널명 (수정 가능!)"),
+                    "platform": st.column_config.TextColumn("플랫폼", disabled=True),
+                    "email": st.column_config.TextColumn("이메일", disabled=True),
+                    "id": None # ID 숨기기
+                },
+                hide_index=True,
+                use_container_width=True,
+                key="send_editor"
+            )
+            
+            selected_rows = edited_send_df[edited_send_df['발송선택'] == True]
+            
+            st.markdown("---")
+            c1, c2 = st.columns(2)
+            sender_email = st.text_input("보내는 이메일", value=st.secrets.get("SENDER_EMAIL", "rizzsender@gmail.com"))
+            sender_pw = st.text_input("앱 비밀번호", type="password", value=st.secrets.get("SENDER_PW", ""))
 
-        if st.button("🚀 선택한 크리에이터에게 메일 발송", type="primary"):
-            if not sender_pw or not selected_creators: st.error("정보를 확인해주세요.")
-            else:
-                prog_bar = st.progress(0); status_text = st.empty(); success_count = 0
-                for idx, t_email in enumerate(selected_creators):
-                    c_name = df_pending[df_pending['email']==t_email]['channel_name'].values[0]
-                    status_text.write(f"[{idx+1}/{len(selected_creators)}] {c_name}님 발송 중...")
-                    try:
-                        subject, body, imgs = get_seeding_template(template_choice, c_name, FIXED_SENDER_NAME)
-                        msg = MIMEMultipart('related')
-                        msg['From'], msg['To'], msg['Subject'] = sender_email, t_email, Header(subject, 'utf-8')
-                        msg['Reply-To'] = "hcommerceinc1@gmail.com"
-                        msg.attach(MIMEText(body, 'html', 'utf-8'))
-                        if os.path.exists(FIXED_CARD_PATH):
-                            with open(FIXED_CARD_PATH, "rb") as f:
-                                img_data = MIMEImage(f.read()); img_data.add_header('Content-ID', '<biz_card>'); msg.attach(img_data)
-                        for img_name in imgs:
-                            if os.path.exists(img_name):
-                                with open(img_name, "rb") as f:
-                                    part = MIMEApplication(f.read(), Name=img_name); part['Content-Disposition'] = f'attachment; filename="{img_name}"'; msg.attach(part)
-                        server = smtplib.SMTP('smtp.gmail.com', 587); server.starttls(); server.login(sender_email, sender_pw.replace(' ', '')); server.send_message(msg); server.quit()
-                        update_creator_status(t_email, '발송완료'); success_count += 1; time.sleep(1.5)
-                    except Exception as e: st.error(f"{t_email} 실패: {e}")
-                    prog_bar.progress((idx + 1) / len(selected_creators))
-                st.success(f"🎉 총 {success_count}명 발송 완료!")
+            if st.button(f"🚀 선택한 {len(selected_rows)}명에게 메일 발송", type="primary"):
+                if not sender_pw or selected_rows.empty: 
+                    st.error("앱 비밀번호를 입력하시고, 위 표에서 발송할 사람을 1명 이상 체크해주세요.")
+                else:
+                    prog_bar = st.progress(0); status_text = st.empty(); success_count = 0
+                    
+                    conn = sqlite3.connect('influencer_db.db')
+                    c = conn.cursor()
+                    
+                    for idx, row in selected_rows.reset_index().iterrows():
+                        t_email = row['email']
+                        c_name = row['channel_name'] # 수정한 이름이 적용됨
+                        
+                        # 수정한 이름을 DB에도 업데이트 해줍니다
+                        c.execute("UPDATE influencers SET channel_name=? WHERE email=?", (c_name, t_email))
+                        conn.commit()
+                        
+                        status_text.write(f"[{idx+1}/{len(selected_rows)}] {c_name}님에게 발송 중...")
+                        try:
+                            subject, body, imgs = get_seeding_template(template_choice, c_name, FIXED_SENDER_NAME)
+                            msg = MIMEMultipart('related')
+                            msg['From'], msg['To'], msg['Subject'] = sender_email, t_email, Header(subject, 'utf-8')
+                            msg['Reply-To'] = "hcommerceinc1@gmail.com"
+                            msg.attach(MIMEText(body, 'html', 'utf-8'))
+                            
+                            if os.path.exists(FIXED_CARD_PATH):
+                                with open(FIXED_CARD_PATH, "rb") as f:
+                                    img_data = MIMEImage(f.read()); img_data.add_header('Content-ID', '<biz_card>'); msg.attach(img_data)
+                            for img_name in imgs:
+                                if os.path.exists(img_name):
+                                    with open(img_name, "rb") as f:
+                                        part = MIMEApplication(f.read(), Name=img_name); part['Content-Disposition'] = f'attachment; filename="{img_name}"'; msg.attach(part)
+                            
+                            server = smtplib.SMTP('smtp.gmail.com', 587); server.starttls(); server.login(sender_email, sender_pw.replace(' ', '')); server.send_message(msg); server.quit()
+                            
+                            c.execute("UPDATE influencers SET status = '발송완료' WHERE email = ?", (t_email,))
+                            conn.commit()
+                            success_count += 1; time.sleep(1.5)
+                        except Exception as e: 
+                            st.error(f"{t_email} 발송 실패: {e}")
+                            
+                        prog_bar.progress((idx + 1) / len(selected_rows))
+                    
+                    conn.close()
+                    st.success(f"🎉 총 {success_count}명에게 성공적으로 발송 완료되었습니다! 화면을 새로고침하여 표를 갱신해주세요.")
+                    time.sleep(2)
+                    st.rerun()
 
     with tab_db:
         st.subheader("🗄️ 플랫폼별 DB 관리")
@@ -487,7 +560,7 @@ elif "2️⃣" in app_mode:
                 to_em = df_b.at[idx, 'Email'].strip()
                 try:
                     msg = MIMEMultipart('related'); msg['From'], msg['To'], msg['Subject'] = s_em, to_em, Header(t_list[t_name]['subject'], 'utf-8')
-                    msg['Reply-To'] = "partner@glowuprizz.com" # 🌟 B2B 답장은 이쪽으로!
+                    msg['Reply-To'] = "partner@glowuprizz.com"
                     msg.attach(MIMEText(t_list[t_name]['body'], 'html', 'utf-8'))
                     if os.path.exists(card_p):
                         with open(card_p, "rb") as f:
