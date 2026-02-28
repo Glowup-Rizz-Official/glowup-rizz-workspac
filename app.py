@@ -368,6 +368,7 @@ if "1️⃣" in app_mode:
                         msg = MIMEMultipart('related')
                         msg['From'] = sender_email
                         msg['To'] = t_email
+                        msg['Reply-To'] = "hcommerceinc1@gmail.com"
                         
                         if "MELV" in template_choice:
                             msg['Subject'] = Header(f"[MELV] {c_name}님, 멜브 첫 공식 런칭 제품 시딩 제안드립니다 💖", 'utf-8')
