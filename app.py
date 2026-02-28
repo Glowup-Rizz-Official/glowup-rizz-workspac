@@ -182,7 +182,7 @@ if "1️⃣" in app_mode:
             return True, avg_v, eff
         except: return False, 0, 0
 
-    def scrape_sns_apify(platform, keyword, category, max_pages=3):
+    def scrape_sns_apify(platform, keyword, category, max_pages=10):
         influencers = []
         site_domain = "instagram.com" if platform == "Instagram" else "tiktok.com"
         
@@ -191,10 +191,11 @@ if "1️⃣" in app_mode:
         
         search_query = f'site:{site_domain} {keyword} {contact_keywords} {exclude_shops}'
         
+        # 🌟 릴스 및 일반 피드 수집 허용 (해시태그 모음집, 탐색탭 등 쓰레기 데이터만 방어) 🌟
         if platform == "Instagram": 
-            search_query += " -inurl:p -inurl:reels -inurl:reel -inurl:tags -inurl:explore"
+            search_query += " -inurl:tags -inurl:explore"
         else: 
-            search_query += " -inurl:video"
+            search_query += " -inurl:tag"
             
         email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
 
@@ -216,22 +217,46 @@ if "1️⃣" in app_mode:
                 for res in item.get("organicResults", []):
                     snippet = res.get("description", "")
                     link = res.get("url", "")
+                    title = res.get("title", "") # 스마트 아이디 추출용
                     
-                    if not re.search(r'[가-힣]', snippet): continue
+                    if not re.search(r'[가-힣]', snippet) and not re.search(r'[가-힣]', title): continue
                         
                     link_lower = link.lower()
-                    if "/p/" in link_lower or "/reel" in link_lower or "/tv/" in link_lower or "/tags/" in link_lower:
+                    if "/tags/" in link_lower or "/explore" in link_lower:
                         continue 
                         
                     emails = re.findall(email_pattern, snippet)
                     if emails and site_domain in link:
-                        channel_name = link.split(f"{site_domain}/")[-1].replace("/", "").replace("@", "")
+                        
+                        # 🌟 채널명(아이디) 스마트 추출 로직 (릴스/게시물에서도 아이디를 뽑아냅니다) 🌟
+                        channel_name = "크리에이터"
+                        if platform == "Instagram":
+                            # 구글 타이틀에서 (@아이디) 추출 시도
+                            username_match = re.search(r'\(@([a-zA-Z0-9._]+)\)', title)
+                            if username_match:
+                                channel_name = username_match.group(1)
+                            else:
+                                # 타이틀에 없으면 URL 기반 파싱 (p, reel 제외)
+                                parts = link.split(f"{site_domain}/")[-1].split("/")
+                                if parts and parts[0] not in ['p', 'reel', 'reels', 'tv']:
+                                    channel_name = parts[0].replace("@", "")
+                                else:
+                                    channel_name = "인플루언서(링크참고)"
+                        else:
+                            parts = link.split(f"{site_domain}/")[-1].split("/")
+                            if parts and parts[0] not in ['video', 'tag']:
+                                channel_name = parts[0].replace("@", "")
+                            else:
+                                channel_name = "틱톡커(링크참고)"
                         
                         channel_lower = channel_name.lower()
                         snippet_lower = snippet.lower()
+                        title_lower = title.lower()
                         
+                        # 블랙리스트 필터링
                         is_blacklisted = any(word in channel_lower for word in blacklist_words) or \
-                                         any(word in snippet_lower for word in blacklist_words)
+                                         any(word in snippet_lower for word in blacklist_words) or \
+                                         any(word in title_lower for word in blacklist_words)
                         if is_blacklisted: continue
                             
                         influencers.append({"플랫폼": platform, "카테고리": category, "채널명": channel_name, "이메일": emails[0], "URL": link, "소개글": snippet})
@@ -369,7 +394,8 @@ if "1️⃣" in app_mode:
         with st.form("ig_search"):
             kw_ig = st.text_input("검색 키워드 (예: \"뷰티, 화장품 및 퍼스널 케어\")")
             cat_ig = st.selectbox("분류 카테고리", CATEGORIES)
-            pages_ig = st.slider("검색 깊이 (페이지 수)", 1, 10, 3)
+            # 🌟 페이지 설정 UI 개선 (1~30페이지, -/+ 버튼 형식) 🌟
+            pages_ig = st.number_input("검색 깊이 (페이지 수)", min_value=1, max_value=30, value=10, step=1)
             if st.form_submit_button("🚀 인스타 검색 시작") and kw_ig:
                 with st.spinner("Apify 프록시 엔진을 통해 안전하게 수집 중입니다... (약 10~30초 소요)"):
                     df_ig = scrape_sns_apify("Instagram", kw_ig, cat_ig, pages_ig)
@@ -385,7 +411,8 @@ if "1️⃣" in app_mode:
         with st.form("tk_search"):
             kw_tk = st.text_input("검색 키워드 (예: \"디지털 크리에이터\" 메이크업)")
             cat_tk = st.selectbox("분류 카테고리", CATEGORIES)
-            pages_tk = st.slider("검색 깊이 (페이지 수)", 1, 10, 3)
+            # 🌟 페이지 설정 UI 개선 🌟
+            pages_tk = st.number_input("검색 깊이 (페이지 수)", min_value=1, max_value=30, value=10, step=1)
             if st.form_submit_button("🚀 틱톡 검색 시작") and kw_tk:
                 with st.spinner("Apify 프록시 엔진을 통해 안전하게 수집 중입니다..."):
                     df_tk = scrape_sns_apify("TikTok", kw_tk, cat_tk, pages_tk)
@@ -410,7 +437,6 @@ if "1️⃣" in app_mode:
             st.write(f"🪪 **고정 발신자:** {FIXED_SENDER_NAME}")
             st.write(f"🪪 **첨부 명함:** `{FIXED_CARD_PATH}`")
             
-        # 🌟 메일 미리보기 기능 추가 🌟
         subject_preview, body_preview, _ = get_seeding_template(template_choice, "OOO(채널명)", FIXED_SENDER_NAME)
         with st.expander("👀 발송될 메일 미리보기 (이름이 자동으로 들어갑니다!)"):
             st.markdown(f"**제목:** {subject_preview}")
@@ -443,26 +469,22 @@ if "1️⃣" in app_mode:
                     status_text.write(f"[{idx+1}/{len(selected_creators)}] {c_name}님에게 발송 중...")
                     
                     try:
-                        # 🌟 에러 해결: .attach() 에러가 나지 않도록 코드를 깔끔하게 분리했습니다.
                         subject, body, attach_images = get_seeding_template(template_choice, c_name, FIXED_SENDER_NAME)
                         
                         msg = MIMEMultipart('related')
                         msg['From'] = sender_email
                         msg['To'] = t_email
                         msg['Subject'] = Header(subject, 'utf-8')
-                        msg['Reply-To'] = "hcommerceinc1@gmail.com" # 답장 받을 메일 주소
+                        msg['Reply-To'] = "hcommerceinc1@gmail.com" 
                         
-                        # 본문 HTML 첨부 (이 부분이 수정됨)
                         msg.attach(MIMEText(body, 'html', 'utf-8'))
                         
-                        # 명함 첨부
                         if os.path.exists(FIXED_CARD_PATH):
                             with open(FIXED_CARD_PATH, "rb") as f:
                                 img_data = MIMEImage(f.read())
                                 img_data.add_header('Content-ID', '<biz_card>')
                                 msg.attach(img_data)
                         
-                        # 제품 이미지 첨부
                         for img_name in attach_images:
                             if os.path.exists(img_name):
                                 with open(img_name, "rb") as f:
@@ -696,7 +718,6 @@ elif "2️⃣" in app_mode:
                     status_text.write(f"[{i+1}/{len(target_df)}] {to_email} 발송 중...")
                     
                     try:
-                        # 🌟 에러 해결: 여기도 깔끔하게 분리
                         msg = MIMEMultipart('related')
                         msg['From'] = sender_email
                         msg['To'] = to_email
