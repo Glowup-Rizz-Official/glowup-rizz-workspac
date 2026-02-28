@@ -220,34 +220,60 @@ if "1️⃣" in app_mode:
                     if emails and site_domain in link:
                         target_email = emails[0]
                         
+                        # 🌟 진짜 이름(디스플레이 네임) 초정밀 추출 시스템 🌟
                         extracted_id = ""
                         display_name = ""
                         
-                        title_clean = re.sub(r'^(Instagram의|인스타그램의)\s*', '', title, flags=re.IGNORECASE).strip()
+                        # 1. URL에서 정확한 영문 ID 먼저 파악해두기
+                        parts = link.split(f"{site_domain}/")[-1].split("/")
+                        if parts and parts[0] not in ['p', 'reel', 'reels', 'tv', 'video', 'tag']:
+                            extracted_id = parts[0].replace("@", "").split('?')[0]
+                        
+                        # 2. 타이틀(제목) 파싱 -> "이지연 (@jjjohnnyeey) • Instagram..." 패턴
+                        title_clean = re.sub(r'(-|\||•).*$', '', title).strip() 
+                        title_clean = re.sub(r'^(Instagram의|인스타그램의)\s*', '', title_clean, flags=re.IGNORECASE)
+                        title_clean = title_clean.replace("님 프로필", "").strip()
                         
                         name_match = re.search(r'^(.*?)\s*\(@([a-zA-Z0-9._]+)\)', title_clean)
                         if name_match:
-                            raw_name = name_match.group(1).strip()
-                            extracted_id = name_match.group(2).strip()
-                            
-                            clean_name = re.sub(r'(-|\||•|Instagram|인스타그램|사진|동영상|프로필|게시물).*$', '', raw_name, flags=re.IGNORECASE).strip()
-                            display_name = clean_name.replace("님의", "").replace("님", "").strip()
+                            display_name = name_match.group(1).strip()
+                            if not extracted_id: extracted_id = name_match.group(2).strip()
+                        else:
+                            title_only = title_clean.replace(f"@{extracted_id}", "").strip()
+                            if title_only and title_only.lower() != extracted_id.lower() and "instagram" not in title_only.lower() and "tiktok" not in title_only.lower():
+                                display_name = title_only
 
-                        if not extracted_id:
-                            parts = link.split(f"{site_domain}/")[-1].split("/")
-                            if parts and parts[0] not in ['p', 'reel', 'reels', 'tv', 'video', 'tag']:
-                                extracted_id = parts[0].replace("@", "")
-                        
-                        if not display_name and extracted_id:
-                            sn_match = re.search(rf'^(.*?)\s*\(@{extracted_id}\)', snippet)
-                            if sn_match:
-                                clean_sn_name = re.sub(r'(-|\||•).*$', '', sn_match.group(1)).strip()
-                                display_name = clean_sn_name.replace("님의", "").replace("님", "").strip()
+                        # 3. 스니펫(소개글) 파싱 -> "jjjohnnyeey 이지연 게시물 435 팔로워 33.5만" 패턴 완벽 분해
+                        if not display_name or len(display_name) > 20:
+                            # 게시물, 팔로워 글자가 나오는 앞부분 텍스트 덩어리를 뚝 떼어냄
+                            split_snip = re.split(r'(게시물|팔로워|팔로잉|팔로우|followers|following|posts)', snippet, flags=re.IGNORECASE)
+                            if len(split_snip) > 1:
+                                front_text = split_snip[0]
                                 
-                        channel_name = display_name if display_name else extracted_id
-                        if not channel_name or "링크참고" in channel_name:
+                                # 앞부분 텍스트에서 1번에서 찾은 영어 ID를 지워버림 (jjjohnnyeey 삭제)
+                                if extracted_id:
+                                    front_text = re.sub(rf'(?i){re.escape(extracted_id)}', '', front_text)
+                                    
+                                # 짜잘한 특수기호나 쓸데없는 단어 삭제
+                                front_text = re.sub(r'(@|Instagram|인스타그램|TikTok|틱톡|프로필|사진|동영상|-|\||•)', '', front_text, flags=re.IGNORECASE).strip()
+                                
+                                # 연속된 공백 제거 후 이름 획득!
+                                front_text = ' '.join(front_text.split())
+                                if front_text and len(front_text) <= 20:
+                                    display_name = front_text
+
+                        # 4. 최종 정제 (이름 뒤에 붙은 '님', '님의' 제거)
+                        display_name = display_name.replace("님의", "").replace("님", "").strip()
+                        
+                        # 5. 이름 결정! 이름이 있으면 이름, 없으면 아이디, 최악엔 이메일 앞자리
+                        if display_name:
+                            channel_name = display_name
+                        elif extracted_id:
+                            channel_name = extracted_id
+                        else:
                             channel_name = target_email.split('@')[0]
                         
+                        # 블랙리스트 필터 (광고/쇼핑몰 계정 컷)
                         is_blacklisted = any(word in channel_name.lower() for word in blacklist_words) or \
                                          any(word in snippet.lower() for word in blacklist_words) or \
                                          any(word in title.lower() for word in blacklist_words)
@@ -327,7 +353,6 @@ if "1️⃣" in app_mode:
     tab_yt, tab_ig, tab_tk, tab_mail, tab_db = st.tabs(["📺 YouTube 검색", "📸 Instagram 검색", "🎵 TikTok 검색", "💌 시딩 메일 발송", "🗄️ 플랫폼별 DB 관리"])
 
     with tab_yt:
-        # 🌟 유튜브 완벽 원본 복구 구역 🌟
         st.subheader("유튜브 크리에이터 딥서치")
         with st.form("yt_search"):
             kws = st.text_input("검색 키워드 (쉼표 구분)")
