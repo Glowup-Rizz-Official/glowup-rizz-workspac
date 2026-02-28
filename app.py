@@ -61,7 +61,7 @@ def init_creator_db():
 def save_creator_to_db(platform, category, channel_name, email, url, subscribers, description):
     conn = sqlite3.connect('influencer_db.db')
     c = conn.cursor()
-    c.execute("SELECT id FROM influencers WHERE url=?", (url,))
+    c.execute("SELECT id FROM influencers WHERE email=?", (email,))
     if not c.fetchone():
         c.execute("INSERT INTO influencers (platform, category, channel_name, email, url, subscribers, description, collected_at, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '대기')",
                   (platform, category, channel_name, email, url, subscribers, description, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
@@ -72,6 +72,15 @@ def update_creator_status(email, status):
     conn = sqlite3.connect('influencer_db.db')
     c = conn.cursor()
     c.execute("UPDATE influencers SET status = ? WHERE email = ?", (status, email))
+    conn.commit()
+    conn.close()
+
+def delete_creators_from_db(emails_to_delete):
+    if not emails_to_delete: return
+    conn = sqlite3.connect('influencer_db.db')
+    c = conn.cursor()
+    placeholders = ','.join('?' for _ in emails_to_delete)
+    c.execute(f"DELETE FROM influencers WHERE email IN ({placeholders})", tuple(emails_to_delete))
     conn.commit()
     conn.close()
 
@@ -178,7 +187,8 @@ if "1️⃣" in app_mode:
         site_domain = "instagram.com" if platform == "Instagram" else "tiktok.com"
         
         contact_keywords = '("@gmail.com" OR "@naver.com" OR "이메일" OR "email" OR "협찬" OR "dm")'
-        exclude_shops = '-"예약" -"오픈카톡" -"카카오채널" -"스튜디오" -"원장" -"살롱" -"클래스" -"진단" -"공식" -"official"'
+        # 🛡️ 더 강력해진 구글 검색 제외어 (정부, 공공, 센터 등 추가)
+        exclude_shops = '-"예약" -"오픈카톡" -"카카오채널" -"스튜디오" -"원장" -"살롱" -"클래스" -"진단" -"공식" -"official" -"정부" -"공공기관" -"센터" -"협회"'
         
         search_query = f'site:{site_domain} {keyword} {contact_keywords} {exclude_shops}'
         
@@ -200,16 +210,20 @@ if "1️⃣" in app_mode:
         try:
             run = apify_client.actor("apify/google-search-scraper").call(run_input=run_input)
             
+            # 🛡️ 파이썬 자체 블랙리스트 (구글이 뚫려도 여기서 철벽 방어)
+            blacklist_words = ['official', 'shop', 'store', 'brand', 'company', 'clinic', 'studio', 
+                               '공식', '쇼핑몰', '도매', '정부', '공공기관', '재단', '협회', '센터', '예약']
+            
             for item in apify_client.dataset(run["defaultDatasetId"]).iterate_items():
                 for res in item.get("organicResults", []):
                     snippet = res.get("description", "")
                     link = res.get("url", "")
                     
-                    # 🛡️ 1차 방어: 한글 판독기 (소개글에 한글이 아예 없으면 100% 외국 계정이므로 버림)
+                    # 1차: 한글이 없으면 무조건 버림 (외국인 필터)
                     if not re.search(r'[가-힣]', snippet):
                         continue
                         
-                    # 🛡️ 2차 방어: 구글이 놓친 게시물 링크 찌꺼기 제거
+                    # 2차: 주소에 쓸데없는 게시물 찌꺼기가 있으면 버림
                     link_lower = link.lower()
                     if "/p/" in link_lower or "/reel" in link_lower or "/tv/" in link_lower or "/tags/" in link_lower:
                         continue 
@@ -218,9 +232,14 @@ if "1️⃣" in app_mode:
                     if emails and site_domain in link:
                         channel_name = link.split(f"{site_domain}/")[-1].replace("/", "").replace("@", "")
                         
-                        # 🛡️ 3차 방어: 공식 브랜드/쇼핑몰 느낌이 나면 버림
+                        # 3차: 채널 이름이나 소개글에 블랙리스트 단어가 있으면 버림
                         channel_lower = channel_name.lower()
-                        if "official" in channel_lower or "shop" in channel_lower or "store" in channel_lower or "brand" in channel_lower:
+                        snippet_lower = snippet.lower()
+                        
+                        is_blacklisted = any(word in channel_lower for word in blacklist_words) or \
+                                         any(word in snippet_lower for word in blacklist_words)
+                        
+                        if is_blacklisted:
                             continue
                             
                         influencers.append({"플랫폼": platform, "카테고리": category, "채널명": channel_name, "이메일": emails[0], "URL": link, "소개글": snippet})
@@ -331,7 +350,6 @@ if "1️⃣" in app_mode:
             st.write(f"🪪 **첨부 명함:** `{FIXED_CARD_PATH}`")
             
         c1, c2 = st.columns(2)
-        # Secrets에 저장된 이메일과 비밀번호를 자동으로 불러옴 (편의성 극대화)
         default_email = st.secrets.get("SENDER_EMAIL", "rizzsender@gmail.com")
         default_pw = st.secrets.get("SENDER_PW", "")
         
@@ -438,12 +456,24 @@ if "1️⃣" in app_mode:
                 st.success(f"🎉 총 {success_count}명의 크리에이터에게 시딩 제안 메일을 성공적으로 발송했습니다!")
 
     with tab_db:
-        st.subheader("🗄️ 수집된 크리에이터 플랫폼별 DB")
+        st.subheader("🗄️ 수집된 크리에이터 플랫폼별 DB 관리")
         conn = sqlite3.connect('influencer_db.db')
         df_db = pd.read_sql_query("SELECT platform, category, channel_name, email, url, collected_at, status FROM influencers ORDER BY collected_at DESC", conn)
         conn.close()
 
+        # 🗑️ 삭제 기능 UI 추가 (오류난 데이터 정리용)
+        with st.expander("🗑️ 원치 않는 크리에이터 데이터 삭제 (정부/브랜드 계정 정리)"):
+            st.warning("아래에서 선택한 이메일은 데이터베이스에서 영구 삭제됩니다.")
+            emails_to_delete = st.multiselect("삭제할 계정 선택 (채널명 - 이메일)", df_db['email'].tolist(), format_func=lambda x: f"{df_db[df_db['email']==x]['channel_name'].values[0]} ({x})")
+            if st.button("🚨 선택한 데이터 영구 삭제", type="primary"):
+                delete_creators_from_db(emails_to_delete)
+                st.success(f"{len(emails_to_delete)}개의 데이터가 삭제되었습니다! 🔄 곧 화면이 새로고침됩니다.")
+                time.sleep(1.5)
+                st.rerun()
+
+        st.markdown("---")
         db_yt, db_ig, db_tk = st.tabs(["📺 YouTube DB", "📸 Instagram DB", "🎵 TikTok DB"])
+        
         def render_platform_db(plat_name, df_all):
             df_plat = df_all[df_all['platform'] == plat_name]
             st.write(f"총 **{len(df_plat)}**명의 {plat_name} 데이터가 있습니다.")
@@ -648,6 +678,19 @@ elif "2️⃣" in app_mode:
                 st.success(f"🎉 총 {success_count}곳에 제안서 발송 완료!")
 
     with tab_crm:
-        st.subheader("📊 B2B 콜드메일 CRM 데이터베이스")
+        st.subheader("📊 B2B 콜드메일 CRM 데이터베이스 관리")
         df = load_brand_db()
+        
+        # 🗑️ B2B 타겟 삭제 기능 추가
+        with st.expander("🗑️ 원치 않는 브랜드 타겟 삭제"):
+            st.warning("아래에서 선택한 이메일은 데이터베이스에서 영구 삭제됩니다.")
+            emails_to_delete_b2b = st.multiselect("삭제할 메일 선택", df['Email'].tolist())
+            if st.button("🚨 선택한 타겟 영구 삭제", type="primary"):
+                df = df[~df['Email'].isin(emails_to_delete_b2b)]
+                save_brand_db(df)
+                st.success(f"{len(emails_to_delete_b2b)}개의 타겟이 삭제되었습니다! 🔄 곧 화면이 새로고침됩니다.")
+                time.sleep(1.5)
+                st.rerun()
+                
+        st.markdown("---")
         st.dataframe(df, use_container_width=True)
