@@ -472,7 +472,8 @@ if "1️⃣" in app_mode:
                 },
                 use_container_width=True,
                 hide_index=True,
-                disabled=[col for col in df_plat.columns if col != '선택'] # 체크박스 빼고 모두 읽기 전용
+                disabled=[col for col in df_plat.columns if col != '선택'],
+                key=f"editor_{plat_name}"  # 🌟 핵심 수정: 여기에 고유 키(key)를 추가해 줍니다!
             )
             
             # 체크된 항목의 이메일만 추출
@@ -692,7 +693,7 @@ elif "2️⃣" in app_mode:
         st.subheader("📊 B2B 콜드메일 CRM 데이터베이스 관리")
         df = load_brand_db()
         
-        # 🌟 B2B 탭에도 체크박스 기반 삭제 UI 적용 🌟
+        #🌟 B2B 탭에도 체크박스 기반 삭제 UI 적용 🌟
         df.insert(0, '선택', False)
         
         edited_df_b2b = st.data_editor(
