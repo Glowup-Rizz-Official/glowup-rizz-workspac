@@ -187,7 +187,6 @@ if "1️⃣" in app_mode:
         site_domain = "instagram.com" if platform == "Instagram" else "tiktok.com"
         
         contact_keywords = '("@gmail.com" OR "@naver.com" OR "이메일" OR "email" OR "협찬" OR "dm")'
-        # 🛡️ 더 강력해진 구글 검색 제외어 (정부, 공공, 센터 등 추가)
         exclude_shops = '-"예약" -"오픈카톡" -"카카오채널" -"스튜디오" -"원장" -"살롱" -"클래스" -"진단" -"공식" -"official" -"정부" -"공공기관" -"센터" -"협회"'
         
         search_query = f'site:{site_domain} {keyword} {contact_keywords} {exclude_shops}'
@@ -210,7 +209,6 @@ if "1️⃣" in app_mode:
         try:
             run = apify_client.actor("apify/google-search-scraper").call(run_input=run_input)
             
-            # 🛡️ 파이썬 자체 블랙리스트 (구글이 뚫려도 여기서 철벽 방어)
             blacklist_words = ['official', 'shop', 'store', 'brand', 'company', 'clinic', 'studio', 
                                '공식', '쇼핑몰', '도매', '정부', '공공기관', '재단', '협회', '센터', '예약']
             
@@ -219,11 +217,8 @@ if "1️⃣" in app_mode:
                     snippet = res.get("description", "")
                     link = res.get("url", "")
                     
-                    # 1차: 한글이 없으면 무조건 버림 (외국인 필터)
-                    if not re.search(r'[가-힣]', snippet):
-                        continue
+                    if not re.search(r'[가-힣]', snippet): continue
                         
-                    # 2차: 주소에 쓸데없는 게시물 찌꺼기가 있으면 버림
                     link_lower = link.lower()
                     if "/p/" in link_lower or "/reel" in link_lower or "/tv/" in link_lower or "/tags/" in link_lower:
                         continue 
@@ -232,15 +227,12 @@ if "1️⃣" in app_mode:
                     if emails and site_domain in link:
                         channel_name = link.split(f"{site_domain}/")[-1].replace("/", "").replace("@", "")
                         
-                        # 3차: 채널 이름이나 소개글에 블랙리스트 단어가 있으면 버림
                         channel_lower = channel_name.lower()
                         snippet_lower = snippet.lower()
                         
                         is_blacklisted = any(word in channel_lower for word in blacklist_words) or \
                                          any(word in snippet_lower for word in blacklist_words)
-                        
-                        if is_blacklisted:
-                            continue
+                        if is_blacklisted: continue
                             
                         influencers.append({"플랫폼": platform, "카테고리": category, "채널명": channel_name, "이메일": emails[0], "URL": link, "소개글": snippet})
         except Exception as e:
@@ -306,7 +298,7 @@ if "1️⃣" in app_mode:
     with tab_ig:
         st.subheader("인스타그램 인플루언서 발굴 (Apify 엔진)")
         with st.form("ig_search"):
-            kw_ig = st.text_input("검색 키워드 (예: 뷰티케어, 협찬환영)")
+            kw_ig = st.text_input("검색 키워드 (예: \"뷰티, 화장품 및 퍼스널 케어\")")
             cat_ig = st.selectbox("분류 카테고리", CATEGORIES)
             pages_ig = st.slider("검색 깊이 (페이지 수)", 1, 10, 3)
             if st.form_submit_button("🚀 인스타 검색 시작") and kw_ig:
@@ -322,7 +314,7 @@ if "1️⃣" in app_mode:
     with tab_tk:
         st.subheader("틱톡 크리에이터 발굴 (Apify 엔진)")
         with st.form("tk_search"):
-            kw_tk = st.text_input("검색 키워드 (예: 메이크업, 비즈니스)")
+            kw_tk = st.text_input("검색 키워드 (예: \"디지털 크리에이터\" 메이크업)")
             cat_tk = st.selectbox("분류 카테고리", CATEGORIES)
             pages_tk = st.slider("검색 깊이 (페이지 수)", 1, 10, 3)
             if st.form_submit_button("🚀 틱톡 검색 시작") and kw_tk:
@@ -461,26 +453,45 @@ if "1️⃣" in app_mode:
         df_db = pd.read_sql_query("SELECT platform, category, channel_name, email, url, collected_at, status FROM influencers ORDER BY collected_at DESC", conn)
         conn.close()
 
-        # 🗑️ 삭제 기능 UI 추가 (오류난 데이터 정리용)
-        with st.expander("🗑️ 원치 않는 크리에이터 데이터 삭제 (정부/브랜드 계정 정리)"):
-            st.warning("아래에서 선택한 이메일은 데이터베이스에서 영구 삭제됩니다.")
-            emails_to_delete = st.multiselect("삭제할 계정 선택 (채널명 - 이메일)", df_db['email'].tolist(), format_func=lambda x: f"{df_db[df_db['email']==x]['channel_name'].values[0]} ({x})")
-            if st.button("🚨 선택한 데이터 영구 삭제", type="primary"):
-                delete_creators_from_db(emails_to_delete)
-                st.success(f"{len(emails_to_delete)}개의 데이터가 삭제되었습니다! 🔄 곧 화면이 새로고침됩니다.")
-                time.sleep(1.5)
-                st.rerun()
-
-        st.markdown("---")
         db_yt, db_ig, db_tk = st.tabs(["📺 YouTube DB", "📸 Instagram DB", "🎵 TikTok DB"])
         
+        # 🌟 혁신적인 UI: 체크박스로 직관적인 DB 선택 및 삭제 🌟
         def render_platform_db(plat_name, df_all):
-            df_plat = df_all[df_all['platform'] == plat_name]
+            df_plat = df_all[df_all['platform'] == plat_name].copy()
             st.write(f"총 **{len(df_plat)}**명의 {plat_name} 데이터가 있습니다.")
-            st.dataframe(df_plat, column_config={"url": st.column_config.LinkColumn("링크")}, use_container_width=True, hide_index=True)
-            if not df_plat.empty:
-                csv = df_plat.to_csv(index=False).encode('utf-8-sig')
-                st.download_button(label=f"📥 {plat_name} 목록 CSV 다운로드", data=csv, file_name=f"influencers_{plat_name}.csv", mime="text/csv")
+            
+            # 체크박스용 가상 컬럼 추가
+            df_plat.insert(0, '선택', False)
+            
+            # st.data_editor를 사용하여 체크박스가 있는 엑셀 형태 구현
+            edited_df = st.data_editor(
+                df_plat,
+                column_config={
+                    "선택": st.column_config.CheckboxColumn("선택", default=False),
+                    "url": st.column_config.LinkColumn("링크")
+                },
+                use_container_width=True,
+                hide_index=True,
+                disabled=[col for col in df_plat.columns if col != '선택'] # 체크박스 빼고 모두 읽기 전용
+            )
+            
+            # 체크된 항목의 이메일만 추출
+            selected_emails = edited_df[edited_df['선택'] == True]['email'].tolist()
+            
+            # 다운로드 버튼과 삭제 버튼을 나란히 배치
+            col_csv, col_del = st.columns([1, 1])
+            with col_csv:
+                if not df_plat.empty:
+                    # 다운로드 시에는 '선택' 컬럼 숨기기
+                    csv = df_plat.drop(columns=['선택']).to_csv(index=False).encode('utf-8-sig')
+                    st.download_button(label=f"📥 {plat_name} DB 다운로드", data=csv, file_name=f"influencers_{plat_name}.csv", mime="text/csv", key=f"dl_{plat_name}")
+            with col_del:
+                if selected_emails:
+                    if st.button(f"🚨 선택한 {len(selected_emails)}명 데이터 영구 삭제", type="primary", key=f"del_{plat_name}"):
+                        delete_creators_from_db(selected_emails)
+                        st.success("데이터가 삭제되었습니다! 🔄 곧 화면이 새로고침됩니다.")
+                        time.sleep(1.5)
+                        st.rerun()
 
         with db_yt: render_platform_db("YouTube", df_db)
         with db_ig: render_platform_db("Instagram", df_db)
@@ -681,16 +692,31 @@ elif "2️⃣" in app_mode:
         st.subheader("📊 B2B 콜드메일 CRM 데이터베이스 관리")
         df = load_brand_db()
         
-        # 🗑️ B2B 타겟 삭제 기능 추가
-        with st.expander("🗑️ 원치 않는 브랜드 타겟 삭제"):
-            st.warning("아래에서 선택한 이메일은 데이터베이스에서 영구 삭제됩니다.")
-            emails_to_delete_b2b = st.multiselect("삭제할 메일 선택", df['Email'].tolist())
-            if st.button("🚨 선택한 타겟 영구 삭제", type="primary"):
-                df = df[~df['Email'].isin(emails_to_delete_b2b)]
-                save_brand_db(df)
-                st.success(f"{len(emails_to_delete_b2b)}개의 타겟이 삭제되었습니다! 🔄 곧 화면이 새로고침됩니다.")
-                time.sleep(1.5)
-                st.rerun()
-                
-        st.markdown("---")
-        st.dataframe(df, use_container_width=True)
+        # 🌟 B2B 탭에도 체크박스 기반 삭제 UI 적용 🌟
+        df.insert(0, '선택', False)
+        
+        edited_df_b2b = st.data_editor(
+            df,
+            column_config={
+                "선택": st.column_config.CheckboxColumn("선택", default=False)
+            },
+            use_container_width=True,
+            hide_index=True,
+            disabled=[col for col in df.columns if col != '선택']
+        )
+        
+        selected_emails_b2b = edited_df_b2b[edited_df_b2b['선택'] == True]['Email'].tolist()
+        
+        col_csv_b2b, col_del_b2b = st.columns([1, 1])
+        with col_csv_b2b:
+            csv_b2b = df.drop(columns=['선택']).to_csv(index=False).encode('utf-8-sig')
+            st.download_button(label="📥 B2B 타겟 CSV 다운로드", data=csv_b2b, file_name="glowup_crm_db.csv", mime="text/csv")
+        with col_del_b2b:
+            if selected_emails_b2b:
+                if st.button(f"🚨 선택한 타겟 {len(selected_emails_b2b)}곳 영구 삭제", type="primary"):
+                    df_to_save = load_brand_db()
+                    df_to_save = df_to_save[~df_to_save['Email'].isin(selected_emails_b2b)]
+                    save_brand_db(df_to_save)
+                    st.success(f"{len(selected_emails_b2b)}개의 타겟이 삭제되었습니다! 🔄 곧 화면이 새로고침됩니다.")
+                    time.sleep(1.5)
+                    st.rerun()
