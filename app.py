@@ -220,33 +220,42 @@ if "1️⃣" in app_mode:
                     if emails and site_domain in link:
                         target_email = emails[0]
                         
-                        # 🌟 닉네임(디스플레이 네임) 스마트 추출 🌟
+                        # 🌟 닉네임(디스플레이 네임) 영혼까지 끌어모으는 추출 로직 🌟
                         extracted_id = ""
                         display_name = ""
                         
-                        # "닉네임 (@아이디)" 형태 분리
-                        name_match = re.search(r'^(.*?)\s*\(@([a-zA-Z0-9._]+)\)', title)
+                        # 1. 구글 타이틀에서 "Instagram의" 같은 방해꾼 제거
+                        title_clean = re.sub(r'^(Instagram의|인스타그램의)\s*', '', title, flags=re.IGNORECASE).strip()
+                        
+                        # 2. "닉네임 (@아이디)" 패턴 완벽 포착
+                        name_match = re.search(r'^(.*?)\s*\(@([a-zA-Z0-9._]+)\)', title_clean)
                         if name_match:
                             raw_name = name_match.group(1).strip()
                             extracted_id = name_match.group(2).strip()
                             
-                            # 지저분한 수식어(- Instagram 등) 제거
-                            clean_name = re.sub(r'(-|\||•).*$', '', raw_name).strip()
-                            clean_name = clean_name.replace("Instagram의", "").replace("님의", "").replace("게시물", "").strip()
-                            display_name = clean_name
+                            # 3. 닉네임 뒤에 붙은 쓸데없는 꼬리표 싹둑 잘라내기
+                            clean_name = re.sub(r'(-|\||•|Instagram|인스타그램|사진|동영상|프로필|게시물).*$', '', raw_name, flags=re.IGNORECASE).strip()
+                            display_name = clean_name.replace("님의", "").replace("님", "").strip()
 
-                        # 괄호 형태가 없으면 URL에서 아이디라도 가져오기
+                        # 타이틀에서 아이디를 못 찾았다면 URL에서 줍기
                         if not extracted_id:
                             parts = link.split(f"{site_domain}/")[-1].split("/")
                             if parts and parts[0] not in ['p', 'reel', 'reels', 'tv', 'video', 'tag']:
                                 extracted_id = parts[0].replace("@", "")
                         
-                        # 이름이 없으면 아이디를 쓰고, 둘 다 없으면 이메일 앞부분 사용
+                        # 타이틀에서 닉네임이 비어있다면, 스니펫(소개글) 맨 앞부분에서 다시 탐색
+                        if not display_name and extracted_id:
+                            sn_match = re.search(rf'^(.*?)\s*\(@{extracted_id}\)', snippet)
+                            if sn_match:
+                                clean_sn_name = re.sub(r'(-|\||•).*$', '', sn_match.group(1)).strip()
+                                display_name = clean_sn_name.replace("님의", "").replace("님", "").strip()
+                                
+                        # 최종 결정: 닉네임이 있으면 닉네임, 없으면 아이디, 최악의 경우 이메일 앞부분
                         channel_name = display_name if display_name else extracted_id
                         if not channel_name or "링크참고" in channel_name:
                             channel_name = target_email.split('@')[0]
                         
-                        # 블랙리스트 필터 (닉네임, 아이디, 소개글 모두 검사)
+                        # 블랙리스트 필터 (닉네임, 아이디, 소개글 모두 검사하여 샵/브랜드 걸러냄)
                         is_blacklisted = any(word in channel_name.lower() for word in blacklist_words) or \
                                          any(word in snippet.lower() for word in blacklist_words) or \
                                          any(word in title.lower() for word in blacklist_words)
@@ -332,7 +341,7 @@ if "1️⃣" in app_mode:
             cat_ig = st.selectbox("분류 카테고리", CATEGORIES)
             pages_ig = st.number_input("검색 깊이 (페이지 수)", 1, 30, 10)
             if st.form_submit_button("🚀 인스타 검색 시작") and kw_ig:
-                with st.spinner("릴스 및 게시물 데이터를 분석하며 이름을 추출 중입니다..."):
+                with st.spinner("릴스 및 게시물 데이터를 분석하며 찐 이름을 추출 중입니다..."):
                     df_ig = scrape_sns_apify("Instagram", kw_ig, cat_ig, pages_ig)
                 if not df_ig.empty:
                     st.success(f"이메일과 이름이 확인된 {len(df_ig)}명을 찾았습니다.")
@@ -377,10 +386,10 @@ if "1️⃣" in app_mode:
                 preview_html = preview_html.replace('cid:biz_card', f'data:image/png;base64,{get_image_base64(FIXED_CARD_PATH)}')
             st.components.v1.html(preview_html, height=350, scrolling=True)
 
-        st.markdown("### ✍️ 발송 대상 선택 및 이름 수정")
-        st.caption("표에서 '선택' 박스를 체크하세요. 이름이 이상하면 **'이름(채널명)' 칸을 더블클릭해서 직접 수정**하신 후 발송할 수 있습니다!")
+        st.markdown("### ✍️ 발송 대상 선택 및 이름 편집")
+        st.caption("표에서 '발송선택'을 체크하세요. 이름이 어색하다면 **'📝 이름/채널명' 칸을 더블클릭해서 직접 예쁘게 수정**하신 후 발송하시면 됩니다!")
         
-        # 🌟 혁신 기능: 발송 전 이름 수정이 가능한 에디터 🌟
+        # 🌟 발송 전 이름 수정이 가능한 스마트 에디터 🌟
         if not df_pending.empty:
             df_pending.insert(0, '발송선택', False)
             
@@ -388,10 +397,10 @@ if "1️⃣" in app_mode:
                 df_pending,
                 column_config={
                     "발송선택": st.column_config.CheckboxColumn("✅ 선택", default=False),
-                    "channel_name": st.column_config.TextColumn("📝 이름/채널명 (수정 가능!)"),
+                    "channel_name": st.column_config.TextColumn("📝 이름/채널명 (클릭하여 수정!)"),
                     "platform": st.column_config.TextColumn("플랫폼", disabled=True),
                     "email": st.column_config.TextColumn("이메일", disabled=True),
-                    "id": None # ID 숨기기
+                    "id": None 
                 },
                 hide_index=True,
                 use_container_width=True,
@@ -416,9 +425,9 @@ if "1️⃣" in app_mode:
                     
                     for idx, row in selected_rows.reset_index().iterrows():
                         t_email = row['email']
-                        c_name = row['channel_name'] # 수정한 이름이 적용됨
+                        c_name = row['channel_name'] # 표에서 직접 수정한 이름 반영
                         
-                        # 수정한 이름을 DB에도 업데이트 해줍니다
+                        # 수정한 이름을 DB에도 영구 업데이트
                         c.execute("UPDATE influencers SET channel_name=? WHERE email=?", (c_name, t_email))
                         conn.commit()
                         
