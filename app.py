@@ -240,6 +240,75 @@ if "1️⃣" in app_mode:
             
         return pd.DataFrame(influencers).drop_duplicates(subset=['이메일'])
 
+    # 🌟 시딩 메일 템플릿 관리 함수 (미리보기 및 발송 동시 사용) 🌟
+    def get_seeding_template(template_choice, c_name, sender_name):
+        if "MELV" in template_choice:
+            subject = f"[MELV] {c_name}님, 멜브 첫 공식 런칭 제품 시딩 제안드립니다 💖"
+            body = f"""<div style="font-family: 'Apple SD Gothic Neo', sans-serif; line-height: 1.6; color: #222;">
+            안녕하세요, {c_name}님!<br>
+            뷰티 브랜드 MELV(멜브) MD {sender_name}입니다. :)<br><br>
+            이번 MELV의 첫 공식 런칭으로, 브랜드 무드와 가장 잘 어울리는 크리에이터분들께만 제일 빠르게! 런칭 제품을 선물 드리고 싶어 연락드렸습니다! 💖<br><br>
+            <b>1. MELV 립시럽 (2종)</b><br>
+            기존 글로우 립의 요플레 현상과 끈적임을 확실하게 잡았습니다.<br>
+            특히 말랑한 물방울 실리콘 팁이 맑은 광택감을 온전히 살려주며, 호호바씨오일과 시어버터를 듬뿍 담아 단순히 겉광만 내는 것이 아니라 건조한 입술에 깊은 보습감까지 꽉 채워줍니다.<br><br>
+            <b>2. MELV 립타투 (3종)</b><br>
+            촌스러운 핑크 착색이 아닌, 감성적인 뮤티드 컬러로 뽑아낸 신개념 타투 립입니다.<br>
+            밥을 먹거나 물놀이를 해도 쉽게 지워지지 않는 강력한 지속력을 자랑하며, 보습 성분(콜라겐, 펩타이드)을 함유하여 떼어낼 때 자극이 적고 건조함 없이 편안하게 마무리됩니다.<br>
+            (자연스러운 오버립 연출로 중안부 여백을 예쁘게 커버해 줍니다!)<br><br>
+            {c_name}님을 위해 아낌없이 전 컬러를 꽉 채워 보내드릴 예정입니다!<br>
+            본 키트는 제품 협찬으로, 수령 후 인스타그램 피드 또는 스토리에 공식 계정(@melv.kr) 태그와 함께 업로드가 가능하신 분들께만 한정적으로 발송해 드리고 있습니다. 🙏<br>
+            (선정된 소수의 분들께만 드리는 키트인 만큼, {c_name}님의 감각적인 후기를 꼭 보고 싶습니다...💖)<br><br>
+            진행이 가능하시다면 받아보실 <b>[성함 / 연락처 / 주소]</b>를 남겨주세요. 정성껏 포장해서 보내드리겠습니다.<br><br>
+            감사합니다!<br><br>
+            <img src="cid:biz_card" alt="{sender_name} 명함" style="max-width: 400px; border: 1px solid #eaeaea; border-radius: 4px;">
+            </div>"""
+            attach_images = ["melv1.jpg", "melv2.jpg"]
+            
+        elif "SOLV" in template_choice:
+            subject = f"[SOLV] {c_name}님, 솔브 첫 공식 런칭 에스테틱 모델링팩 시딩 제안드립니다 💖"
+            body = f"""<div style="font-family: 'Apple SD Gothic Neo', sans-serif; line-height: 1.6; color: #222;">
+            안녕하세요, {c_name}님!<br>
+            기초 뷰티 브랜드 SOLV(솔브) MD {sender_name}입니다. :)<br><br>
+            이번 SOLV의 첫 공식 런칭으로, 브랜드 무드와 가장 잘 어울리는 크리에이터분들께만 제일 빠르게! 런칭 제품을 선물 드리고 싶어 연락드렸습니다! 💖<br><br>
+            <b>&lt;SOLV 모델링팩(5개입)&gt;</b><br>
+            💧 <b>물 조절 실패 ZERO!</b><br>
+            기존 모델링팩의 단점인 가루 날림과 번거로운 물 조절은 이제 그만! 베이스와 세럼을 섞기만 하면 되는 간편한 방식으로, 떼어낸 후에도 건조함 없이 피부 위 윤광 코팅 효과를 선사합니다.<br><br>
+            ❄️ <b>에스테틱 급 쿨링 효과!</b><br>
+            시중 모델링팩 중 쿨링 성분을 최대치로 담아, 열감으로 넓어진 모공과 예민해진 피부를 즉각적으로 진정시켜 에스테틱에서 관리받은 듯한 최상의 컨디션을 만들어줍니다.<br><br>
+            💄 <b>화잘먹을 위한 필수템!</b><br>
+            피부 온도가 낮아지면 베이스 메이크업의 밀착력이 달라집니다. 홈케어로 피부결을 정돈해 메이크업 시간과 화장품 비용을 획기적으로 줄여보세요.<br><br>
+            <b>[사용 방법 & TIP]</b><br>
+            팩볼에 1제+2제를 컵에 넣고 빠르게 섞어 스파출라로 펴 바른 뒤 완전히 마르면 제거해 주세요. (TIP: 가장자리는 두껍게 바르면 한 번에 깔끔하게 제거됩니다!)<br>
+            남은 영양감은 툭툭 두드려 흡수해 주세요! 별도의 세안이 필요 없는 고영양 세럼 제형입니다.<br><br>
+            본 제품은 협찬으로, 수령 후 인스타그램 피드 또는 스토리에 공식 계정(@solv.kr) 태그와 함께 업로드가 가능하신 분들께만 한정적으로 발송해 드리고 있습니다. 🙏<br>
+            (선정된 소수의 분들께만 드리는 이벤트인 만큼, {c_name}님의 감각적인 후기를 꼭 보고 싶습니다...💖)<br><br>
+            진행이 가능하시다면 받아보실 <b>[성함 / 연락처 / 주소]</b>를 남겨주세요. 정성껏 포장해서 보내드리겠습니다.<br><br>
+            감사합니다!<br><br>
+            <img src="cid:biz_card" alt="{sender_name} 명함" style="max-width: 400px; border: 1px solid #eaeaea; border-radius: 4px;">
+            </div>"""
+            attach_images = ["solv1.jpg", "solv2.jpg"]
+            
+        else:
+            subject = f"[UPPR] {c_name}님, 어퍼의 소두핏 코듀로이 볼캡 & 체크셔츠 시딩 제안드립니다 🧢"
+            body = f"""<div style="font-family: 'Apple SD Gothic Neo', sans-serif; line-height: 1.6; color: #222;">
+            안녕하세요, {c_name}님!<br>
+            캐주얼 브랜드 UPPR(어퍼) MD {sender_name}입니다. :)<br><br>
+            평소 {c_name}님의 감각적인 무드를 눈여겨보다가, 이번에 새롭게 선보이는 UPPR의 시그니처 아이템들이 찰떡같이 어울리실 것 같아 가장 먼저 선물로 보내드리고 싶어 연락드렸습니다! 🧢<br><br>
+            <b>1. UPPR 코듀로이 볼캡 (소두핏 끝판왕)</b><br>
+            시중의 애매한 핏으로 얼굴형이 부각되던 볼캡은 이제 그만! 얇은 면이 아닌 탄탄하고 도톰한 피그먼트 워싱 코듀로이 원단으로 정수리 꺼짐 없이 핏을 꽉 잡아줍니다.<br>
+            특히 깊이감 있는 설계와 길고 넓은 챙이 광대를 자연스럽게 커버해 어떤 얼굴형이든 완벽한 '소두핏'을 연출해 줍니다. (시중 4~7만 원대 퀄리티를 33,000원에 구현했습니다!)<br><br>
+            <b>2. UPPR 시그니처 체크셔츠</b><br>
+            트렌디한 미니 격자 패턴과 자연스럽게 떨어지는 오버핏 실루엣! 바쁜 아침 화장 없이 볼캡과 툭 걸치기만 해도 힙한 '꾸안꾸' 데일리 코디가 완성됩니다.<br><br>
+            본 제품은 협찬으로, 수령 후 활동하시는 채널에 핏이 담긴 리뷰 업로드가 가능하신 분들께만 한정적으로 발송해 드리고 있습니다. 🙏<br>
+            (업로드 시 참고하실 수 있는 핵심 소구점과 노출 꿀팁이 담긴 '시딩 가이드'도 함께 전달해 드릴 예정입니다!)<br><br>
+            진행이 가능하시다면 받아보실 <b>[성함 / 연락처 / 주소 / 셔츠사이즈(M,L)]</b>를 남겨주세요. 정성껏 포장해서 보내드리겠습니다.<br><br>
+            감사합니다!<br><br>
+            <img src="cid:biz_card" alt="{sender_name} 명함" style="max-width: 400px; border: 1px solid #eaeaea; border-radius: 4px;">
+            </div>"""
+            attach_images = ["uppr1.jpg", "uppr2.jpg"]
+            
+        return subject, body, attach_images
+
     tab_yt, tab_ig, tab_tk, tab_mail, tab_db = st.tabs(["📺 YouTube 검색", "📸 Instagram 검색", "🎵 TikTok 검색", "💌 시딩 메일 발송", "🗄️ 플랫폼별 DB 관리"])
 
     with tab_yt:
@@ -341,6 +410,15 @@ if "1️⃣" in app_mode:
             st.write(f"🪪 **고정 발신자:** {FIXED_SENDER_NAME}")
             st.write(f"🪪 **첨부 명함:** `{FIXED_CARD_PATH}`")
             
+        # 🌟 메일 미리보기 기능 추가 🌟
+        subject_preview, body_preview, _ = get_seeding_template(template_choice, "OOO(채널명)", FIXED_SENDER_NAME)
+        with st.expander("👀 발송될 메일 미리보기 (이름이 자동으로 들어갑니다!)"):
+            st.markdown(f"**제목:** {subject_preview}")
+            preview_html = body_preview
+            if os.path.exists(FIXED_CARD_PATH):
+                preview_html = preview_html.replace('cid:biz_card', f'data:image/png;base64,{get_image_base64(FIXED_CARD_PATH)}')
+            st.components.v1.html(preview_html, height=400, scrolling=True)
+
         c1, c2 = st.columns(2)
         default_email = st.secrets.get("SENDER_EMAIL", "rizzsender@gmail.com")
         default_pw = st.secrets.get("SENDER_PW", "")
@@ -365,84 +443,26 @@ if "1️⃣" in app_mode:
                     status_text.write(f"[{idx+1}/{len(selected_creators)}] {c_name}님에게 발송 중...")
                     
                     try:
+                        # 🌟 에러 해결: .attach() 에러가 나지 않도록 코드를 깔끔하게 분리했습니다.
+                        subject, body, attach_images = get_seeding_template(template_choice, c_name, FIXED_SENDER_NAME)
+                        
                         msg = MIMEMultipart('related')
                         msg['From'] = sender_email
                         msg['To'] = t_email
-                        msg['Reply-To'] = "hcommerceinc1@gmail.com" # 🌟 크리에이터 답장은 무조건 이 계정으로!
+                        msg['Subject'] = Header(subject, 'utf-8')
+                        msg['Reply-To'] = "hcommerceinc1@gmail.com" # 답장 받을 메일 주소
                         
-                        if "MELV" in template_choice:
-                            msg['Subject'] = Header(f"[MELV] {c_name}님, 멜브 첫 공식 런칭 제품 시딩 제안드립니다 💖", 'utf-8')
-                            body = f"""<div style="font-family: 'Apple SD Gothic Neo', sans-serif; line-height: 1.6; color: #222;">
-                            안녕하세요, {c_name}님!<br>
-                            뷰티 브랜드 MELV(멜브) MD {FIXED_SENDER_NAME}입니다. :)<br><br>
-                            이번 MELV의 첫 공식 런칭으로, 브랜드 무드와 가장 잘 어울리는 크리에이터분들께만 제일 빠르게! 런칭 제품을 선물 드리고 싶어 연락드렸습니다! 💖<br><br>
-                            <b>1. MELV 립시럽 (2종)</b><br>
-                            기존 글로우 립의 요플레 현상과 끈적임을 확실하게 잡았습니다.<br>
-                            특히 말랑한 물방울 실리콘 팁이 맑은 광택감을 온전히 살려주며, 호호바씨오일과 시어버터를 듬뿍 담아 단순히 겉광만 내는 것이 아니라 건조한 입술에 깊은 보습감까지 꽉 채워줍니다.<br><br>
-                            <b>2. MELV 립타투 (3종)</b><br>
-                            촌스러운 핑크 착색이 아닌, 감성적인 뮤티드 컬러로 뽑아낸 신개념 타투 립입니다.<br>
-                            밥을 먹거나 물놀이를 해도 쉽게 지워지지 않는 강력한 지속력을 자랑하며, 보습 성분(콜라겐, 펩타이드)을 함유하여 떼어낼 때 자극이 적고 건조함 없이 편안하게 마무리됩니다.<br>
-                            (자연스러운 오버립 연출로 중안부 여백을 예쁘게 커버해 줍니다!)<br><br>
-                            {c_name}님을 위해 아낌없이 전 컬러를 꽉 채워 보내드릴 예정입니다!<br>
-                            본 키트는 제품 협찬으로, 수령 후 인스타그램 피드 또는 스토리에 공식 계정(@melv.kr) 태그와 함께 업로드가 가능하신 분들께만 한정적으로 발송해 드리고 있습니다. 🙏<br>
-                            (선정된 소수의 분들께만 드리는 키트인 만큼, {c_name}님의 감각적인 후기를 꼭 보고 싶습니다...💖)<br><br>
-                            진행이 가능하시다면 받아보실 <b>[성함 / 연락처 / 주소]</b>를 남겨주세요. 정성껏 포장해서 보내드리겠습니다.<br><br>
-                            감사합니다!<br><br>
-                            <img src="cid:biz_card" alt="{FIXED_SENDER_NAME} 명함" style="max-width: 400px; border: 1px solid #eaeaea; border-radius: 4px;">
-                            </div>"""
-                            attach_images = ["melv1.jpg", "melv2.jpg"]
+                        # 본문 HTML 첨부 (이 부분이 수정됨)
+                        msg.attach(MIMEText(body, 'html', 'utf-8'))
                         
-                        elif "SOLV" in template_choice:
-                            msg['Subject'] = Header(f"[SOLV] {c_name}님, 솔브 첫 공식 런칭 에스테틱 모델링팩 시딩 제안드립니다 💖", 'utf-8')
-                            body = f"""<div style="font-family: 'Apple SD Gothic Neo', sans-serif; line-height: 1.6; color: #222;">
-                            안녕하세요, {c_name}님!<br>
-                            기초 뷰티 브랜드 SOLV(솔브) MD {FIXED_SENDER_NAME}입니다. :)<br><br>
-                            이번 SOLV의 첫 공식 런칭으로, 브랜드 무드와 가장 잘 어울리는 크리에이터분들께만 제일 빠르게! 런칭 제품을 선물 드리고 싶어 연락드렸습니다! 💖<br><br>
-                            <b>&lt;SOLV 모델링팩(5개입)&gt;</b><br>
-                            💧 <b>물 조절 실패 ZERO!</b><br>
-                            기존 모델링팩의 단점인 가루 날림과 번거로운 물 조절은 이제 그만! 베이스와 세럼을 섞기만 하면 되는 간편한 방식으로, 떼어낸 후에도 건조함 없이 피부 위 윤광 코팅 효과를 선사합니다.<br><br>
-                            ❄️ <b>에스테틱 급 쿨링 효과!</b><br>
-                            시중 모델링팩 중 쿨링 성분을 최대치로 담아, 열감으로 넓어진 모공과 예민해진 피부를 즉각적으로 진정시켜 에스테틱에서 관리받은 듯한 최상의 컨디션을 만들어줍니다.<br><br>
-                            💄 <b>화잘먹을 위한 필수템!</b><br>
-                            피부 온도가 낮아지면 베이스 메이크업의 밀착력이 달라집니다. 홈케어로 피부결을 정돈해 메이크업 시간과 화장품 비용을 획기적으로 줄여보세요.<br><br>
-                            <b>[사용 방법 & TIP]</b><br>
-                            팩볼에 1제+2제를 컵에 넣고 빠르게 섞어 스파출라로 펴 바른 뒤 완전히 마르면 제거해 주세요. (TIP: 가장자리는 두껍게 바르면 한 번에 깔끔하게 제거됩니다!)<br>
-                            남은 영양감은 툭툭 두드려 흡수해 주세요! 별도의 세안이 필요 없는 고영양 세럼 제형입니다.<br><br>
-                            본 제품은 협찬으로, 수령 후 인스타그램 피드 또는 스토리에 공식 계정(@solv.kr) 태그와 함께 업로드가 가능하신 분들께만 한정적으로 발송해 드리고 있습니다. 🙏<br>
-                            (선정된 소수의 분들께만 드리는 이벤트인 만큼, {c_name}님의 감각적인 후기를 꼭 보고 싶습니다...💖)<br><br>
-                            진행이 가능하시다면 받아보실 <b>[성함 / 연락처 / 주소]</b>를 남겨주세요. 정성껏 포장해서 보내드리겠습니다.<br><br>
-                            감사합니다!<br><br>
-                            <img src="cid:biz_card" alt="{FIXED_SENDER_NAME} 명함" style="max-width: 400px; border: 1px solid #eaeaea; border-radius: 4px;">
-                            </div>"""
-                            attach_images = ["solv1.jpg", "solv2.jpg"]
-                            
-                        else:
-                            msg['Subject'] = Header(f"[UPPR] {c_name}님, 어퍼의 소두핏 코듀로이 볼캡 & 체크셔츠 시딩 제안드립니다 🧢", 'utf-8')
-                            body = f"""<div style="font-family: 'Apple SD Gothic Neo', sans-serif; line-height: 1.6; color: #222;">
-                            안녕하세요, {c_name}님!<br>
-                            캐주얼 브랜드 UPPR(어퍼) MD {FIXED_SENDER_NAME}입니다. :)<br><br>
-                            평소 {c_name}님의 감각적인 무드를 눈여겨보다가, 이번에 새롭게 선보이는 UPPR의 시그니처 아이템들이 찰떡같이 어울리실 것 같아 가장 먼저 선물로 보내드리고 싶어 연락드렸습니다! 🧢<br><br>
-                            <b>1. UPPR 코듀로이 볼캡 (소두핏 끝판왕)</b><br>
-                            시중의 애매한 핏으로 얼굴형이 부각되던 볼캡은 이제 그만! 얇은 면이 아닌 탄탄하고 도톰한 피그먼트 워싱 코듀로이 원단으로 정수리 꺼짐 없이 핏을 꽉 잡아줍니다.<br>
-                            특히 깊이감 있는 설계와 길고 넓은 챙이 광대를 자연스럽게 커버해 어떤 얼굴형이든 완벽한 '소두핏'을 연출해 줍니다. (시중 4~7만 원대 퀄리티를 33,000원에 구현했습니다!)<br><br>
-                            <b>2. UPPR 시그니처 체크셔츠</b><br>
-                            트렌디한 미니 격자 패턴과 자연스럽게 떨어지는 오버핏 실루엣! 바쁜 아침 화장 없이 볼캡과 툭 걸치기만 해도 힙한 '꾸안꾸' 데일리 코디가 완성됩니다.<br><br>
-                            본 제품은 협찬으로, 수령 후 활동하시는 채널에 핏이 담긴 리뷰 업로드가 가능하신 분들께만 한정적으로 발송해 드리고 있습니다. 🙏<br>
-                            (업로드 시 참고하실 수 있는 핵심 소구점과 노출 꿀팁이 담긴 '시딩 가이드'도 함께 전달해 드릴 예정입니다!)<br><br>
-                            진행이 가능하시다면 받아보실 <b>[성함 / 연락처 / 주소 / 셔츠사이즈(M,L)]</b>를 남겨주세요. 정성껏 포장해서 보내드리겠습니다.<br><br>
-                            감사합니다!<br><br>
-                            <img src="cid:biz_card" alt="{FIXED_SENDER_NAME} 명함" style="max-width: 400px; border: 1px solid #eaeaea; border-radius: 4px;">
-                            </div>"""
-                            attach_images = ["uppr1.jpg", "uppr2.jpg"]
-
-                        msg.attach(MIMEMultipart('alternative')).attach(MIMEText(body, 'html', 'utf-8'))
-                        
+                        # 명함 첨부
                         if os.path.exists(FIXED_CARD_PATH):
                             with open(FIXED_CARD_PATH, "rb") as f:
                                 img_data = MIMEImage(f.read())
                                 img_data.add_header('Content-ID', '<biz_card>')
                                 msg.attach(img_data)
                         
+                        # 제품 이미지 첨부
                         for img_name in attach_images:
                             if os.path.exists(img_name):
                                 with open(img_name, "rb") as f:
@@ -676,15 +696,21 @@ elif "2️⃣" in app_mode:
                     status_text.write(f"[{i+1}/{len(target_df)}] {to_email} 발송 중...")
                     
                     try:
+                        # 🌟 에러 해결: 여기도 깔끔하게 분리
                         msg = MIMEMultipart('related')
-                        msg['From'], msg['To'], msg['Subject'] = sender_email, to_email, Header(selected_template['subject'], 'utf-8')
-                        msg['Reply-To'] = "partner@glowuprizz.com" # 🌟 B2B 파트너 제안 답장 수신 계정 설정
-                        msg.attach(MIMEMultipart('alternative')).attach(MIMEText(selected_template['body'].replace('\xa0', ' '), 'html', 'utf-8'))
+                        msg['From'] = sender_email
+                        msg['To'] = to_email
+                        msg['Subject'] = Header(selected_template['subject'], 'utf-8')
+                        msg['Reply-To'] = "partner@glowuprizz.com"
+                        
+                        msg.attach(MIMEText(selected_template['body'].replace('\xa0', ' '), 'html', 'utf-8'))
+                        
                         if has_card:
                             with open(card_path, "rb") as f:
                                 img_data = MIMEImage(f.read())
                                 img_data.add_header('Content-ID', '<biz_card>')
                                 msg.attach(img_data)
+                                
                         server = smtplib.SMTP('smtp.gmail.com', 587)
                         server.starttls()
                         server.login(sender_email, sender_pw.replace(' ', ''))
