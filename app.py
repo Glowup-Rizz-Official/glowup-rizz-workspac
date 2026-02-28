@@ -336,7 +336,7 @@ if "1️⃣" in app_mode:
         st.info(f"발송 대기 중인 크리에이터가 총 **{len(df_pending)}명** 있습니다.")
         
         col_t1, col_t2 = st.columns(2)
-        with col_t1: template_choice = st.radio("시딩 템플릿 선택", ["1. MELV (립시럽/립타투)", "2. SOLV (모델링팩)"])
+        with col_t1: template_choice = st.radio("시딩 템플릿 선택", ["1. MELV (립시럽/립타투)", "2. SOLV (모델링팩)", "3. UPPR (볼캡/체크셔츠)"])
         with col_t2: 
             st.write(f"🪪 **고정 발신자:** {FIXED_SENDER_NAME}")
             st.write(f"🪪 **첨부 명함:** `{FIXED_CARD_PATH}`")
@@ -368,7 +368,7 @@ if "1️⃣" in app_mode:
                         msg = MIMEMultipart('related')
                         msg['From'] = sender_email
                         msg['To'] = t_email
-                        msg['Reply-To'] = "hcommerceinc1@gmail.com"
+                        msg['Reply-To'] = "hcommerceinc1@gmail.com" # 🌟 크리에이터 답장은 무조건 이 계정으로!
                         
                         if "MELV" in template_choice:
                             msg['Subject'] = Header(f"[MELV] {c_name}님, 멜브 첫 공식 런칭 제품 시딩 제안드립니다 💖", 'utf-8')
@@ -391,7 +391,8 @@ if "1️⃣" in app_mode:
                             <img src="cid:biz_card" alt="{FIXED_SENDER_NAME} 명함" style="max-width: 400px; border: 1px solid #eaeaea; border-radius: 4px;">
                             </div>"""
                             attach_images = ["melv1.jpg", "melv2.jpg"]
-                        else:
+                        
+                        elif "SOLV" in template_choice:
                             msg['Subject'] = Header(f"[SOLV] {c_name}님, 솔브 첫 공식 런칭 에스테틱 모델링팩 시딩 제안드립니다 💖", 'utf-8')
                             body = f"""<div style="font-family: 'Apple SD Gothic Neo', sans-serif; line-height: 1.6; color: #222;">
                             안녕하세요, {c_name}님!<br>
@@ -414,6 +415,25 @@ if "1️⃣" in app_mode:
                             <img src="cid:biz_card" alt="{FIXED_SENDER_NAME} 명함" style="max-width: 400px; border: 1px solid #eaeaea; border-radius: 4px;">
                             </div>"""
                             attach_images = ["solv1.jpg", "solv2.jpg"]
+                            
+                        else:
+                            msg['Subject'] = Header(f"[UPPR] {c_name}님, 어퍼의 소두핏 코듀로이 볼캡 & 체크셔츠 시딩 제안드립니다 🧢", 'utf-8')
+                            body = f"""<div style="font-family: 'Apple SD Gothic Neo', sans-serif; line-height: 1.6; color: #222;">
+                            안녕하세요, {c_name}님!<br>
+                            캐주얼 브랜드 UPPR(어퍼) MD {FIXED_SENDER_NAME}입니다. :)<br><br>
+                            평소 {c_name}님의 감각적인 무드를 눈여겨보다가, 이번에 새롭게 선보이는 UPPR의 시그니처 아이템들이 찰떡같이 어울리실 것 같아 가장 먼저 선물로 보내드리고 싶어 연락드렸습니다! 🧢<br><br>
+                            <b>1. UPPR 코듀로이 볼캡 (소두핏 끝판왕)</b><br>
+                            시중의 애매한 핏으로 얼굴형이 부각되던 볼캡은 이제 그만! 얇은 면이 아닌 탄탄하고 도톰한 피그먼트 워싱 코듀로이 원단으로 정수리 꺼짐 없이 핏을 꽉 잡아줍니다.<br>
+                            특히 깊이감 있는 설계와 길고 넓은 챙이 광대를 자연스럽게 커버해 어떤 얼굴형이든 완벽한 '소두핏'을 연출해 줍니다. (시중 4~7만 원대 퀄리티를 33,000원에 구현했습니다!)<br><br>
+                            <b>2. UPPR 시그니처 체크셔츠</b><br>
+                            트렌디한 미니 격자 패턴과 자연스럽게 떨어지는 오버핏 실루엣! 바쁜 아침 화장 없이 볼캡과 툭 걸치기만 해도 힙한 '꾸안꾸' 데일리 코디가 완성됩니다.<br><br>
+                            본 제품은 협찬으로, 수령 후 활동하시는 채널에 핏이 담긴 리뷰 업로드가 가능하신 분들께만 한정적으로 발송해 드리고 있습니다. 🙏<br>
+                            (업로드 시 참고하실 수 있는 핵심 소구점과 노출 꿀팁이 담긴 '시딩 가이드'도 함께 전달해 드릴 예정입니다!)<br><br>
+                            진행이 가능하시다면 받아보실 <b>[성함 / 연락처 / 주소 / 셔츠사이즈(M,L)]</b>를 남겨주세요. 정성껏 포장해서 보내드리겠습니다.<br><br>
+                            감사합니다!<br><br>
+                            <img src="cid:biz_card" alt="{FIXED_SENDER_NAME} 명함" style="max-width: 400px; border: 1px solid #eaeaea; border-radius: 4px;">
+                            </div>"""
+                            attach_images = ["uppr1.jpg", "uppr2.jpg"]
 
                         msg.attach(MIMEMultipart('alternative')).attach(MIMEText(body, 'html', 'utf-8'))
                         
@@ -456,15 +476,12 @@ if "1️⃣" in app_mode:
 
         db_yt, db_ig, db_tk = st.tabs(["📺 YouTube DB", "📸 Instagram DB", "🎵 TikTok DB"])
         
-        # 🌟 혁신적인 UI: 체크박스로 직관적인 DB 선택 및 삭제 🌟
         def render_platform_db(plat_name, df_all):
             df_plat = df_all[df_all['platform'] == plat_name].copy()
             st.write(f"총 **{len(df_plat)}**명의 {plat_name} 데이터가 있습니다.")
             
-            # 체크박스용 가상 컬럼 추가
             df_plat.insert(0, '선택', False)
             
-            # st.data_editor를 사용하여 체크박스가 있는 엑셀 형태 구현
             edited_df = st.data_editor(
                 df_plat,
                 column_config={
@@ -474,17 +491,14 @@ if "1️⃣" in app_mode:
                 use_container_width=True,
                 hide_index=True,
                 disabled=[col for col in df_plat.columns if col != '선택'],
-                key=f"editor_{plat_name}"  # 🌟 핵심 수정: 여기에 고유 키(key)를 추가해 줍니다!
+                key=f"editor_{plat_name}"
             )
             
-            # 체크된 항목의 이메일만 추출
             selected_emails = edited_df[edited_df['선택'] == True]['email'].tolist()
             
-            # 다운로드 버튼과 삭제 버튼을 나란히 배치
             col_csv, col_del = st.columns([1, 1])
             with col_csv:
                 if not df_plat.empty:
-                    # 다운로드 시에는 '선택' 컬럼 숨기기
                     csv = df_plat.drop(columns=['선택']).to_csv(index=False).encode('utf-8-sig')
                     st.download_button(label=f"📥 {plat_name} DB 다운로드", data=csv, file_name=f"influencers_{plat_name}.csv", mime="text/csv", key=f"dl_{plat_name}")
             with col_del:
@@ -664,6 +678,7 @@ elif "2️⃣" in app_mode:
                     try:
                         msg = MIMEMultipart('related')
                         msg['From'], msg['To'], msg['Subject'] = sender_email, to_email, Header(selected_template['subject'], 'utf-8')
+                        msg['Reply-To'] = "partner@glowuprizz.com" # 🌟 B2B 파트너 제안 답장 수신 계정 설정
                         msg.attach(MIMEMultipart('alternative')).attach(MIMEText(selected_template['body'].replace('\xa0', ' '), 'html', 'utf-8'))
                         if has_card:
                             with open(card_path, "rb") as f:
@@ -694,7 +709,6 @@ elif "2️⃣" in app_mode:
         st.subheader("📊 B2B 콜드메일 CRM 데이터베이스 관리")
         df = load_brand_db()
         
-        #🌟 B2B 탭에도 체크박스 기반 삭제 UI 적용 🌟
         df.insert(0, '선택', False)
         
         edited_df_b2b = st.data_editor(
