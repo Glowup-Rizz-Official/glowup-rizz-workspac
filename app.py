@@ -186,8 +186,17 @@ if "1️⃣" in app_mode:
         influencers = []
         site_domain = "instagram.com" if platform == "Instagram" else "tiktok.com"
         
+        # 🌟 핵심 1: 현재 DB에 있는 이메일을 미리 다 불러옵니다 (중복 노출 방지용) 🌟
+        conn = sqlite3.connect('influencer_db.db')
+        c = conn.cursor()
+        c.execute("SELECT email FROM influencers")
+        existing_emails = {row[0] for row in c.fetchall()}
+        conn.close()
+        
         contact_keywords = '("@gmail.com" OR "@naver.com" OR "이메일" OR "email" OR "협찬" OR "dm")'
-        exclude_shops = '-"예약" -"오픈카톡" -"카카오채널" -"스튜디오" -"원장" -"살롱" -"클래스" -"진단" -"공식" -"official" -"정부" -"공공기관" -"센터" -"협회"'
+        
+        # 🌟 핵심 2: 구글 검색 명령어 자체에서 국립, 박물관, 고객센터 등을 원천 차단 🌟
+        exclude_shops = '-"예약" -"오픈카톡" -"카카오채널" -"스튜디오" -"원장" -"살롱" -"클래스" -"진단" -"공식" -"official" -"정부" -"공공기관" -"센터" -"협회" -"국립" -"박물관" -"미술관" -"고객센터"'
         
         search_query = f'site:{site_domain} {keyword} {contact_keywords} {exclude_shops}'
         if platform == "Instagram": search_query += " -inurl:tags -inurl:explore"
@@ -205,7 +214,10 @@ if "1️⃣" in app_mode:
         
         try:
             run = apify_client.actor("apify/google-search-scraper").call(run_input=run_input)
-            blacklist_words = ['official', 'shop', 'store', 'brand', 'company', 'clinic', 'studio', '공식', '쇼핑몰', '도매', '정부', '공공기관', '재단', '협회', '센터', '예약']
+            
+            # 🌟 핵심 3: 파이썬 내부 블랙리스트에 박물관, 기업 관련 단어 촘촘하게 추가 🌟
+            blacklist_words = ['official', 'shop', 'store', 'brand', 'company', 'clinic', 'studio', 'museum', 'academy', 
+                               '공식', '쇼핑몰', '도매', '정부', '공공기관', '재단', '협회', '센터', '예약', '국립', '박물관', '미술관', '주식회사', '고객센터', '문의처', '대표번호']
             
             for item in apify_client.dataset(run["defaultDatasetId"]).iterate_items():
                 for res in item.get("organicResults", []):
@@ -220,16 +232,17 @@ if "1️⃣" in app_mode:
                     if emails and site_domain in link:
                         target_email = emails[0]
                         
-                        # 🌟 진짜 이름(디스플레이 네임) 초정밀 추출 시스템 🌟
+                        # 🌟 핵심 4: 이미 DB에 있는 이메일이면 파싱할 필요도 없이 가차없이 버립니다! 🌟
+                        if target_email in existing_emails:
+                            continue
+                        
                         extracted_id = ""
                         display_name = ""
                         
-                        # 1. URL에서 정확한 영문 ID 먼저 파악해두기
                         parts = link.split(f"{site_domain}/")[-1].split("/")
                         if parts and parts[0] not in ['p', 'reel', 'reels', 'tv', 'video', 'tag']:
                             extracted_id = parts[0].replace("@", "").split('?')[0]
                         
-                        # 2. 타이틀(제목) 파싱 -> "이지연 (@jjjohnnyeey) • Instagram..." 패턴
                         title_clean = re.sub(r'(-|\||•).*$', '', title).strip() 
                         title_clean = re.sub(r'^(Instagram의|인스타그램의)\s*', '', title_clean, flags=re.IGNORECASE)
                         title_clean = title_clean.replace("님 프로필", "").strip()
@@ -243,29 +256,19 @@ if "1️⃣" in app_mode:
                             if title_only and title_only.lower() != extracted_id.lower() and "instagram" not in title_only.lower() and "tiktok" not in title_only.lower():
                                 display_name = title_only
 
-                        # 3. 스니펫(소개글) 파싱 -> "jjjohnnyeey 이지연 게시물 435 팔로워 33.5만" 패턴 완벽 분해
                         if not display_name or len(display_name) > 20:
-                            # 게시물, 팔로워 글자가 나오는 앞부분 텍스트 덩어리를 뚝 떼어냄
                             split_snip = re.split(r'(게시물|팔로워|팔로잉|팔로우|followers|following|posts)', snippet, flags=re.IGNORECASE)
                             if len(split_snip) > 1:
                                 front_text = split_snip[0]
-                                
-                                # 앞부분 텍스트에서 1번에서 찾은 영어 ID를 지워버림 (jjjohnnyeey 삭제)
                                 if extracted_id:
                                     front_text = re.sub(rf'(?i){re.escape(extracted_id)}', '', front_text)
-                                    
-                                # 짜잘한 특수기호나 쓸데없는 단어 삭제
                                 front_text = re.sub(r'(@|Instagram|인스타그램|TikTok|틱톡|프로필|사진|동영상|-|\||•)', '', front_text, flags=re.IGNORECASE).strip()
-                                
-                                # 연속된 공백 제거 후 이름 획득!
                                 front_text = ' '.join(front_text.split())
                                 if front_text and len(front_text) <= 20:
                                     display_name = front_text
 
-                        # 4. 최종 정제 (이름 뒤에 붙은 '님', '님의' 제거)
                         display_name = display_name.replace("님의", "").replace("님", "").strip()
                         
-                        # 5. 이름 결정! 이름이 있으면 이름, 없으면 아이디, 최악엔 이메일 앞자리
                         if display_name:
                             channel_name = display_name
                         elif extracted_id:
@@ -273,17 +276,18 @@ if "1️⃣" in app_mode:
                         else:
                             channel_name = target_email.split('@')[0]
                         
-                        # 블랙리스트 필터 (광고/쇼핑몰 계정 컷)
                         is_blacklisted = any(word in channel_name.lower() for word in blacklist_words) or \
                                          any(word in snippet.lower() for word in blacklist_words) or \
                                          any(word in title.lower() for word in blacklist_words)
                         if is_blacklisted: continue
                             
+                        # 이메일을 찾았으니 중복 방지 세트에 바로 추가 (한 번의 검색 안에서 중복되는 것도 방지)
+                        existing_emails.add(target_email)
                         influencers.append({"플랫폼": platform, "카테고리": category, "채널명": channel_name, "이메일": target_email, "URL": link, "소개글": snippet})
         except Exception as e:
             st.error(f"Apify 검색 중 오류 발생: {e}")
             
-        return pd.DataFrame(influencers).drop_duplicates(subset=['이메일'])
+        return pd.DataFrame(influencers)
 
     def get_seeding_template(template_choice, c_name, sender_name):
         display_name = c_name if c_name else "크리에이터"
@@ -415,10 +419,10 @@ if "1️⃣" in app_mode:
                 with st.spinner("릴스 및 게시물 데이터를 분석하며 찐 이름을 추출 중입니다..."):
                     df_ig = scrape_sns_apify("Instagram", kw_ig, cat_ig, pages_ig)
                 if not df_ig.empty:
-                    st.success(f"이메일과 이름이 확인된 {len(df_ig)}명을 찾았습니다.")
+                    st.success(f"이메일과 이름이 확인된 새로운 타겟 {len(df_ig)}명을 찾았습니다. (기존 DB 제외됨)")
                     st.dataframe(df_ig, column_config={"URL": st.column_config.LinkColumn("이동")}, use_container_width=True)
                     for _, row in df_ig.iterrows(): save_creator_to_db(row['플랫폼'], row['카테고리'], row['채널명'], row['이메일'], row['URL'], 0, row['소개글'])
-                else: st.warning("수집된 데이터가 없습니다.")
+                else: st.warning("수집된 데이터가 없거나 모두 이미 DB에 저장된 사람입니다.")
 
     with tab_tk:
         st.subheader("틱톡 크리에이터 발굴")
@@ -430,9 +434,10 @@ if "1️⃣" in app_mode:
                 with st.spinner("틱톡커 데이터를 수집 중입니다..."):
                     df_tk = scrape_sns_apify("TikTok", kw_tk, cat_tk, pages_tk)
                 if not df_tk.empty:
-                    st.success(f"{len(df_tk)}명을 찾았습니다.")
+                    st.success(f"새로운 타겟 {len(df_tk)}명을 찾았습니다. (기존 DB 제외됨)")
                     st.dataframe(df_tk, column_config={"URL": st.column_config.LinkColumn("이동")}, use_container_width=True)
                     for _, row in df_tk.iterrows(): save_creator_to_db(row['플랫폼'], row['카테고리'], row['채널명'], row['이메일'], row['URL'], 0, row['소개글'])
+                else: st.warning("수집된 데이터가 없거나 모두 이미 DB에 저장된 사람입니다.")
 
     with tab_mail:
         st.subheader("💌 크리에이터 시딩 제안 메일 발송")
