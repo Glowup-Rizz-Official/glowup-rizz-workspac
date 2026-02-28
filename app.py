@@ -61,17 +61,11 @@ def init_creator_db():
 def save_creator_to_db(platform, category, channel_name, email, url, subscribers, description):
     conn = sqlite3.connect('influencer_db.db')
     c = conn.cursor()
-    c.execute("SELECT id, channel_name FROM influencers WHERE email=?", (email,))
-    row = c.fetchone()
-    if not row:
+    c.execute("SELECT id FROM influencers WHERE email=?", (email,))
+    if not c.fetchone():
         c.execute("INSERT INTO influencers (platform, category, channel_name, email, url, subscribers, description, collected_at, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, '대기')",
                   (platform, category, channel_name, email, url, subscribers, description, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
-    else:
-        # 🌟 핵심: 기존 이름이 영문인데, 새로 찾은 이름이 한글이면 자동으로 DB 업데이트!
-        old_name = row[1]
-        if channel_name != old_name and re.search(r'[가-힣]', channel_name) and not re.search(r'[가-힣]', old_name):
-            c.execute("UPDATE influencers SET channel_name=?, description=?, url=? WHERE email=?", (channel_name, description, url, email))
-    conn.commit()
+        conn.commit()
     conn.close()
 
 def update_creator_status(email, status):
@@ -160,12 +154,40 @@ if "1️⃣" in app_mode:
     SUB_RANGES = {"전체": (0, 100000000), "1만 미만": (0, 10000), "1만 ~ 5만": (10000, 50000), "5만 ~ 10만": (50000, 100000), "10만 ~ 50만": (100000, 500000), "50만 ~ 100만": (500000, 1000000)}
     CATEGORIES = ["뷰티", "패션", "리빙", "육아", "반려동물", "IT/테크", "먹방/푸드", "기타"]
 
+    if "youtube_results" not in st.session_state: st.session_state.youtube_results = None
+
+    def extract_email_ai(desc):
+        if not desc or len(desc) < 5: return ""
+        try:
+            emails = re.findall(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', desc)
+            if emails: return emails[0]
+            manage_api_quota(ai_add=1)
+            response = model.generate_content(f"다음 텍스트에서 이메일 주소만 추출해. 없으면 None: {desc}")
+            res = response.text.strip()
+            return res if "@" in res else ""
+        except: return ""
+
+    def check_performance(up_id, subs):
+        try:
+            manage_api_quota(yt_add=1)
+            req = YOUTUBE.playlistItems().list(part="contentDetails", playlistId=up_id, maxResults=10).execute()
+            v_ids = [i['contentDetails']['videoId'] for i in req.get('items', [])]
+            if not v_ids: return False, 0, 0
+            manage_api_quota(yt_add=1)
+            v_res = YOUTUBE.videos().list(part="statistics,contentDetails", id=",".join(v_ids)).execute()
+            longforms = [v for v in v_res['items'] if 'M' in v['contentDetails']['duration'] or 'H' in v['contentDetails']['duration']]
+            if not longforms: return False, 0, 0
+            avg_v = sum(int(v['statistics'].get('viewCount', 0)) for v in longforms) / len(longforms)
+            eff = avg_v / subs if subs > 0 else 0
+            return True, avg_v, eff
+        except: return False, 0, 0
+
     def scrape_sns_apify(platform, keyword, category, max_pages=10):
         influencers = []
         site_domain = "instagram.com" if platform == "Instagram" else "tiktok.com"
         
         contact_keywords = '("@gmail.com" OR "@naver.com" OR "이메일" OR "email" OR "협찬" OR "dm")'
-        exclude_shops = '-"예약" -"오픈카톡" -"카카오채널" -"스튜디오" -"원장" -"살롱" -"클래스" -"진단" -"공식" -"official" -"정부" -"공공기관" -"센터" -"협회" -"국립" -"박물관" -"미술관" -"고객센터"'
+        exclude_shops = '-"예약" -"오픈카톡" -"카카오채널" -"스튜디오" -"원장" -"살롱" -"클래스" -"진단" -"공식" -"official" -"정부" -"공공기관" -"센터" -"협회"'
         
         search_query = f'site:{site_domain} {keyword} {contact_keywords} {exclude_shops}'
         if platform == "Instagram": search_query += " -inurl:tags -inurl:explore"
@@ -183,8 +205,7 @@ if "1️⃣" in app_mode:
         
         try:
             run = apify_client.actor("apify/google-search-scraper").call(run_input=run_input)
-            blacklist_words = ['official', 'shop', 'store', 'brand', 'company', 'clinic', 'studio', 'museum', 'academy', 
-                               '공식', '쇼핑몰', '도매', '정부', '공공기관', '재단', '협회', '센터', '예약', '국립', '박물관', '미술관', '주식회사', '고객센터', '문의처', '대표번호']
+            blacklist_words = ['official', 'shop', 'store', 'brand', 'company', 'clinic', 'studio', '공식', '쇼핑몰', '도매', '정부', '공공기관', '재단', '협회', '센터', '예약']
             
             for item in apify_client.dataset(run["defaultDatasetId"]).iterate_items():
                 for res in item.get("organicResults", []):
@@ -199,41 +220,30 @@ if "1️⃣" in app_mode:
                     if emails and site_domain in link:
                         target_email = emails[0]
                         
-                        # 🌟 진짜 이름 영혼까지 끌어모으는 초정밀 로직 🌟
                         extracted_id = ""
                         display_name = ""
                         
-                        parts = link.split(f"{site_domain}/")[-1].split("/")
-                        if parts and parts[0] not in ['p', 'reel', 'reels', 'tv', 'video', 'tag']:
-                            extracted_id = parts[0].replace("@", "").split('?')[0]
+                        title_clean = re.sub(r'^(Instagram의|인스타그램의)\s*', '', title, flags=re.IGNORECASE).strip()
                         
-                        # 1순위: (이름 @아이디) 또는 (@아이디 이름) 패턴 탐색
-                        match_ti = re.search(r'([가-힣A-Za-z0-9\s]+?)\s*\(@([a-zA-Z0-9._]+)\)', title)
-                        match_sn = re.search(r'([가-힣A-Za-z0-9\s]+?)\s*\(@([a-zA-Z0-9._]+)\)', snippet)
-                        
-                        if match_ti:
-                            display_name = match_ti.group(1).replace("Instagram의", "").strip()
-                            if not extracted_id: extracted_id = match_ti.group(2)
-                        elif match_sn:
-                            display_name = match_sn.group(1).replace("Instagram의", "").replace("-", "").strip()
-                            if not extracted_id: extracted_id = match_sn.group(2)
-                        
-                        # 2순위: "OOO님의 Instagram" 패턴
-                        if not display_name:
-                            match_nim = re.search(r'([가-힣a-zA-Z0-9\s]+?)님의\s*(Instagram|인스타그램|게시물|릴스)', snippet)
-                            if match_nim: display_name = match_nim.group(1).strip()
+                        name_match = re.search(r'^(.*?)\s*\(@([a-zA-Z0-9._]+)\)', title_clean)
+                        if name_match:
+                            raw_name = name_match.group(1).strip()
+                            extracted_id = name_match.group(2).strip()
                             
-                        # 3순위: 프로필 특유의 "ID 이름 게시물 팔로워" 패턴 (게시물, 팔로워 글자 앞의 한글 추출)
+                            clean_name = re.sub(r'(-|\||•|Instagram|인스타그램|사진|동영상|프로필|게시물).*$', '', raw_name, flags=re.IGNORECASE).strip()
+                            display_name = clean_name.replace("님의", "").replace("님", "").strip()
+
+                        if not extracted_id:
+                            parts = link.split(f"{site_domain}/")[-1].split("/")
+                            if parts and parts[0] not in ['p', 'reel', 'reels', 'tv', 'video', 'tag']:
+                                extracted_id = parts[0].replace("@", "")
+                        
                         if not display_name and extracted_id:
-                            match_prof = re.search(rf'{re.escape(extracted_id)}\s+([가-힣]+(?:\s+[가-힣]+)*)\s+(?:게시물|팔로워|팔로우)', snippet)
-                            if match_prof: display_name = match_prof.group(1).strip()
-                            
-                        # 찌꺼기 글자 깔끔하게 청소
-                        display_name = re.sub(r'(-|\||•|Instagram|인스타그램|사진|동영상|프로필|게시물|좋아요).*$', '', display_name, flags=re.IGNORECASE).strip()
-                        display_name = display_name.replace("님의", "").replace("님", "").strip()
-                        
-                        if len(display_name) > 15: display_name = "" # 너무 길면 문장이 섞인 것이므로 버림
-                        
+                            sn_match = re.search(rf'^(.*?)\s*\(@{extracted_id}\)', snippet)
+                            if sn_match:
+                                clean_sn_name = re.sub(r'(-|\||•).*$', '', sn_match.group(1)).strip()
+                                display_name = clean_sn_name.replace("님의", "").replace("님", "").strip()
+                                
                         channel_name = display_name if display_name else extracted_id
                         if not channel_name or "링크참고" in channel_name:
                             channel_name = target_email.split('@')[0]
@@ -242,8 +252,7 @@ if "1️⃣" in app_mode:
                                          any(word in snippet.lower() for word in blacklist_words) or \
                                          any(word in title.lower() for word in blacklist_words)
                         if is_blacklisted: continue
-
-                        # 찾은 데이터는 무조건 표에 띄워줍니다! (이전처럼 continue로 숨기지 않음)
+                            
                         influencers.append({"플랫폼": platform, "카테고리": category, "채널명": channel_name, "이메일": target_email, "URL": link, "소개글": snippet})
         except Exception as e:
             st.error(f"Apify 검색 중 오류 발생: {e}")
@@ -318,6 +327,7 @@ if "1️⃣" in app_mode:
     tab_yt, tab_ig, tab_tk, tab_mail, tab_db = st.tabs(["📺 YouTube 검색", "📸 Instagram 검색", "🎵 TikTok 검색", "💌 시딩 메일 발송", "🗄️ 플랫폼별 DB 관리"])
 
     with tab_yt:
+        # 🌟 유튜브 완벽 원본 복구 구역 🌟
         st.subheader("유튜브 크리에이터 딥서치")
         with st.form("yt_search"):
             kws = st.text_input("검색 키워드 (쉼표 구분)")
@@ -380,10 +390,9 @@ if "1️⃣" in app_mode:
                 with st.spinner("릴스 및 게시물 데이터를 분석하며 찐 이름을 추출 중입니다..."):
                     df_ig = scrape_sns_apify("Instagram", kw_ig, cat_ig, pages_ig)
                 if not df_ig.empty:
-                    st.success(f"이메일과 이름이 확인된 {len(df_ig)}명을 찾았습니다. (기존 데이터는 자동으로 닉네임이 업그레이드됩니다!)")
+                    st.success(f"이메일과 이름이 확인된 {len(df_ig)}명을 찾았습니다.")
                     st.dataframe(df_ig, column_config={"URL": st.column_config.LinkColumn("이동")}, use_container_width=True)
-                    for _, row in df_ig.iterrows(): 
-                        save_creator_to_db(row['플랫폼'], row['카테고리'], row['채널명'], row['이메일'], row['URL'], 0, row['소개글'])
+                    for _, row in df_ig.iterrows(): save_creator_to_db(row['플랫폼'], row['카테고리'], row['채널명'], row['이메일'], row['URL'], 0, row['소개글'])
                 else: st.warning("수집된 데이터가 없습니다.")
 
     with tab_tk:
@@ -398,8 +407,7 @@ if "1️⃣" in app_mode:
                 if not df_tk.empty:
                     st.success(f"{len(df_tk)}명을 찾았습니다.")
                     st.dataframe(df_tk, column_config={"URL": st.column_config.LinkColumn("이동")}, use_container_width=True)
-                    for _, row in df_tk.iterrows(): 
-                        save_creator_to_db(row['플랫폼'], row['카테고리'], row['채널명'], row['이메일'], row['URL'], 0, row['소개글'])
+                    for _, row in df_tk.iterrows(): save_creator_to_db(row['플랫폼'], row['카테고리'], row['채널명'], row['이메일'], row['URL'], 0, row['소개글'])
 
     with tab_mail:
         st.subheader("💌 크리에이터 시딩 제안 메일 발송")
@@ -425,7 +433,7 @@ if "1️⃣" in app_mode:
             st.components.v1.html(preview_html, height=350, scrolling=True)
 
         st.markdown("### ✍️ 발송 대상 선택 및 이름 편집")
-        st.caption("표에서 '발송선택'을 체크하세요. **이름이 영문 아이디로 뜬다면, '📝 이름/채널명' 칸을 더블클릭해서 직접 예쁘게 수정**하신 후 발송하시면 됩니다! (구글이 릴스에서 이름을 숨겼을 경우를 대비한 필수 기능입니다!)")
+        st.caption("표에서 '발송선택'을 체크하세요. 이름이 어색하다면 **'📝 이름/채널명' 칸을 더블클릭해서 직접 예쁘게 수정**하신 후 발송하시면 됩니다!")
         
         if not df_pending.empty:
             df_pending.insert(0, '발송선택', False)
@@ -434,7 +442,7 @@ if "1️⃣" in app_mode:
                 df_pending,
                 column_config={
                     "발송선택": st.column_config.CheckboxColumn("✅ 선택", default=False),
-                    "channel_name": st.column_config.TextColumn("📝 이름/채널명 (클릭하여 1초 수정!)"),
+                    "channel_name": st.column_config.TextColumn("📝 이름/채널명 (클릭하여 수정!)"),
                     "platform": st.column_config.TextColumn("플랫폼", disabled=True),
                     "email": st.column_config.TextColumn("이메일", disabled=True),
                     "id": None 
