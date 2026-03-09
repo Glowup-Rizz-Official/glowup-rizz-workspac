@@ -4,3 +4,6 @@ gspread
 oauth2client
 google-generativeai
 Pillow
+google-api-python-client
+beautifulsoup4
+requests
