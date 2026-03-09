@@ -1,7 +1,6 @@
 streamlit
 pandas
-requests
-beautifulsoup4
-google-api-python-client
+gspread
+oauth2client
 google-generativeai
-apify-client
+Pillow
