@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import time
-from scraper import run_insta_scraper_dummy, run_youtube_search_real, run_blog_search_real, run_metrics_scraper_dummy
+from scraper import run_insta_scraper_real, run_youtube_search_real, run_blog_search_real, run_metrics_scraper_dummy
 from gsheets import GoogleSheetsManager
 from mailer_and_ai import MailManager
 
@@ -52,7 +52,7 @@ with tabs[0]:
 
     if st.button("🔍 봇 크롤링 시작", type="primary", key="btn_insta"):
         progress_bar = st.progress(0, "크롤링 중...")
-        df_result, failed_links = run_insta_scraper_dummy(kw, progress_bar)
+        df_result, failed_links = run_insta_scraper_real(kw, progress_bar)
         st.session_state.temp_crawled_data = df_result 
         
         st.subheader("결과 미리보기 표")
