@@ -13,23 +13,30 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 
 def get_selenium_driver():
-    """스트림릿 클라우드와 로컬 PC를 자동 구분하여 크롬 브라우저를 띄웁니다."""
+    """투명 망토를 벗고, 사람처럼 보이는 가상 브라우저를 띄웁니다."""
     chrome_options = Options()
-    chrome_options.add_argument("--headless") # 화면 안 띄우고 조용히 실행
+    # 💡 아래 줄을 주석 처리(#)해서 모니터에 브라우저가 직접 뜨게 만듭니다!
+    # chrome_options.add_argument("--headless") 
+    
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
     
-    # 💡 [핵심] 스트림릿 클라우드(리눅스 서버) 환경인 경우 순정 드라이버 사용
-    if os.path.exists('/usr/bin/chromium') and os.path.exists('/usr/bin/chromedriver'):
-        chrome_options.binary_location = '/usr/bin/chromium'
-        service = Service('/usr/bin/chromedriver')
-    else:
-        # 내 컴퓨터(로컬) 환경일 경우 알아서 다운로드하여 사용
-        from webdriver_manager.chrome import ChromeDriverManager
-        service = Service(ChromeDriverManager().install())
-        
-    return webdriver.Chrome(service=service, options=chrome_options)
+    # 💡 봇 탐지(로봇이 아닙니다) 회피용 핵심 코드
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
+    chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36")
+    
+    # 내 컴퓨터(로컬) 환경일 경우 알아서 다운로드하여 사용
+    from webdriver_manager.chrome import ChromeDriverManager
+    service = Service(ChromeDriverManager().install())
+    
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    
+    # 브라우저에게 "나 봇 아니야"라고 한 번 더 최면 걸기
+    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    
+    return driver
 
 def is_korean(text):
     if not text: return False
