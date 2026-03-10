@@ -15,7 +15,7 @@ import google.generativeai as genai
 
 from scraper import run_insta_scraper_real, run_blog_search_real, run_metrics_scraper_dummy
 from gsheets import GoogleSheetsManager
-from mailer_and_ai import MailManager  # 누락되었던 모듈 임포트 추가!
+from mailer_and_ai import MailManager
 
 # --- [1. 보안 및 API 설정] ---
 st.set_page_config(page_title="PB 크리에이터 섭외 자동화", layout="wide")
@@ -25,7 +25,6 @@ try:
     GEMINI_KEY = st.secrets["GEMINI_API_KEY"]
     EMAIL_USER = st.secrets["EMAIL_USER"]
     EMAIL_PW = st.secrets["EMAIL_PW"]
-    
     gs = GoogleSheetsManager(st.secrets["gcp_service_account"], st.secrets["google_sheet_name"])
     mailer = MailManager(EMAIL_USER, EMAIL_PW, GEMINI_KEY)
 except KeyError as e:
@@ -37,8 +36,8 @@ model = genai.GenerativeModel('models/gemini-2.0-flash')
 YOUTUBE = googleapiclient.discovery.build('youtube', 'v3', developerKey=YOUTUBE_KEY)
 
 # --- [2. 데이터 및 상수 설정] ---
-COUNTRIES = {"대한민국": "KR", "미국": "US", "일본": "JP", "영국": "GB", "베트남": "VN", "태국": "TH", "인도네시아": "ID", "대만": "TW"}
-SUB_RANGES = {"전체": (0, 100000000), "1만 미만": (0, 10000), "1만 ~ 5만": (10000, 50000), "5만 ~ 10만": (50000, 100000), "10만 ~ 50만": (100000, 500000), "50만 ~ 100만": (500000, 1000000), "100만 이상": (1000000, 100000000)}
+COUNTRIES = {"대한민국": "KR", "미국": "US", "일본": "JP", "영국": "GB"}
+SUB_RANGES = {"전체": (0, 100000000), "1만 미만": (0, 10000), "1만 ~ 5만": (10000, 50000), "5만 ~ 10만": (50000, 100000), "10만 이상": (100000, 100000000)}
 
 def get_email_template(brand, template_type, channel_name, sender_name):
     if template_type == "시딩 제안용":
@@ -65,7 +64,7 @@ def init_db():
 
 init_db()
 
-# --- [4. 핵심 로직 함수들] ---
+# --- [4. 핵심 로직 (5AM 리셋 적용)] ---
 def get_kst_now(): return datetime.now(timezone.utc) + timedelta(hours=9)
 
 def manage_api_quota(yt_add=0, ai_add=0):
@@ -73,13 +72,18 @@ def manage_api_quota(yt_add=0, ai_add=0):
     c = conn.cursor()
     c.execute("SELECT youtube_count, ai_count, last_reset FROM api_usage WHERE id=1")
     yt_current, ai_current, last_reset_str = c.fetchone()
+    
     now_kst = get_kst_now()
     last_reset_kst = datetime.strptime(last_reset_str, '%Y-%m-%d %H:%M:%S').replace(tzinfo=timezone(timedelta(hours=9))) if last_reset_str else now_kst
-    today_5pm = now_kst.replace(hour=17, minute=0, second=0, microsecond=0)
-    reset_threshold = today_5pm - timedelta(days=1) if now_kst < today_5pm else today_5pm
+    
+    # 매일 오전 5시 리셋 로직
+    today_5am = now_kst.replace(hour=5, minute=0, second=0, microsecond=0)
+    reset_threshold = today_5am - timedelta(days=1) if now_kst < today_5am else today_5am
+    
     if last_reset_kst < reset_threshold:
         yt_current = 0
         c.execute("UPDATE api_usage SET youtube_count = 0, last_reset = ? WHERE id=1", (now_kst.strftime('%Y-%m-%d %H:%M:%S'),))
+        
     if yt_add > 0 or ai_add > 0:
         c.execute("UPDATE api_usage SET youtube_count = youtube_count + ?, ai_count = ai_count + ? WHERE id=1", (yt_add, ai_add))
         yt_current += yt_add; ai_current += ai_add
@@ -171,14 +175,17 @@ def get_recent_ad_videos_ai(up_id, count):
 
 # --- [5. UI 상단 및 사이드바] ---
 st.title("🌐 Glowup Rizz 올인원 분석 엔진")
-st.markdown("문의 010-8900-6756")
+st.markdown("**문의 010-8900-6756**")
 st.divider()
 
 with st.sidebar:
+    try: st.image("logo.png", use_container_width=True) # 로고를 상단에 배치
+    except: pass
+    
     yt_used, ai_used = manage_api_quota()
     st.markdown("### 📊 팀 전체 리소스 현황")
-    st.progress(min(yt_used / 500000, 1.0))
-    st.caption(f"📺 YouTube API: {yt_used:,} / 500,000")
+    st.progress(min(yt_used / 10000, 1.0))
+    st.caption(f"📺 YouTube API: {yt_used:,} / 10,000 (매일 오전 5시 리셋)")
     st.write(f"🤖 **AI API 호출 횟수:** {ai_used:,}회")
     
     if st.checkbox("📋 실시간 발송 로그 보기"):
@@ -189,8 +196,11 @@ with st.sidebar:
         st.success("✅ 관리자 인증 완료")
         if st.button("🔄 AI 카운트 리셋"): reset_ai_quota(); st.rerun()
 
-# --- [6. 탭 구성 (총 8개로 분할 통합)] ---
-tabs = st.tabs(["▶️ 유튜브 상세 검색", "📸 인스타 검색", "🎵 틱톡 검색", "📝 블로그 검색", "🗄️ DB 관리", "✉️ 대량 발송", "🤖 AI 회신 분석", "📊 성과 업데이트"])
+# --- [6. 탭 구성 (요청하신 순서 및 이름 적용)] ---
+tabs = st.tabs([
+    "▶️ 유튜브 상세 검색", "📸 인스타 검색", "🎵 틱톡 검색", "📝 블로그 검색", 
+    "🗄️ DB 관리", "✉️ 대량 발송", "🤖 AI 회신 분석", "📊 성과 업데이트"
+])
 
 # [탭 1: 유튜브 상세 검색]
 with tabs[0]:
@@ -239,71 +249,100 @@ with tabs[0]:
         st.subheader("📊 분석 결과 리스트")
         event = st.dataframe(st.session_state.search_results, column_config={"프로필": st.column_config.ImageColumn(), "URL": st.column_config.LinkColumn("바로가기", display_text="이동"), "upload_id": None}, use_container_width=True, hide_index=True, on_select="rerun", selection_mode="single-row")
 
-        if event.selection.rows:
-            row = st.session_state.search_results.iloc[event.selection.rows[0]]
-            st.divider(); st.subheader(f"🔍 '{row['채널명']}' 딥리서치")
-            if st.button("광고 이력 분석 시작"):
-                with st.spinner("분석 중..."):
-                    df = get_recent_ad_videos_ai(row['upload_id'], 20)
-                    if not df.empty: st.error(f"🚨 광고 의심 영상 {len(df)}개 발견"); st.dataframe(df, column_config={"링크": st.column_config.LinkColumn("영상 바로가기", display_text="시청")}, use_container_width=True)
-                    else: st.success("✅ 최근 1년 내 광고 이력 없음")
-            
-            st.divider(); st.subheader("📧 섭외 제안서 작성")
-            col1, col2, col3 = st.columns(3)
-            with col1: sender = st.text_input("담당자 (내 이름)", value="마케터")
-            with col2: target_email = st.text_input("수신 이메일", value=row['이메일'])
-            with col3: st.text_input("회신 주소", value="hcommerceinc1@gmail.com", disabled=True)
-            
-            col_b1, col_b2 = st.columns(2)
-            with col_b1: brand_select = st.selectbox("진행 브랜드", ["MELV", "SOLV", "UPPR"])
-            with col_b2: type_select = st.selectbox("제안 목적", ["커머스 제안용", "시딩 제안용"])
-            
-            def_sub, def_body = get_email_template(brand_select, type_select, row['채널명'], sender)
-            sub_final = st.text_input("제목", value=def_sub)
-            body_final = st.text_area("본문 (HTML 가능)", value=def_body, height=350)
-            
-            final_card_data = None; st.markdown("---")
-            try:
-                with open("명함.png", "rb") as f: final_card_data = f.read()
-                st.success("✅ **명함(명함.png)** 파일이 자동 첨부됩니다.")
-            except FileNotFoundError:
-                uploaded_card = st.file_uploader("🚨 명함 파일 수동 업로드", type=['png', 'jpg'])
-                if uploaded_card: final_card_data = uploaded_card.getvalue()
-
-            with st.expander("👀 발송될 이메일 미리보기", expanded=True):
-                st.markdown(f"**제목:** {sub_final}\n\n---")
-                st.markdown(body_final, unsafe_allow_html=True)
-                if final_card_data: st.image(final_card_data, caption="첨부 명함", width=300)
-                
-            if st.button("🚀 이메일 전송"):
-                with st.spinner("전송 중..."):
-                    ok, msg = send_custom_mail(target_email, sub_final, body_final, row['채널명'], sender, io.BytesIO(final_card_data) if final_card_data else None)
-                    if ok: st.success("전송 완료!")
-                    else: st.error(f"전송 실패: {msg}")
-
-# [탭 2~4: 크롤링]
+# [탭 2: 인스타 검색] - 키워드 먼저, 버튼 나중에 배치
 with tabs[1]:
     st.header("📸 인스타 크롤링")
-    if st.button("크롤링 시도"):
-        df, err = run_insta_scraper_real(st.text_input("인스타 키워드"), st.progress(0))
-        st.dataframe(df)
+    insta_kw = st.text_input("인스타 검색 키워드 (예: 뷰티)")
+    if st.button("크롤링 시작", key="insta_btn"):
+        if insta_kw:
+            df, err = run_insta_scraper_real(insta_kw, st.progress(0))
+            st.dataframe(df)
+        else:
+            st.warning("키워드를 먼저 입력해주세요.")
 
-with tabs[2]: st.info("틱톡은 셀레니움 연동 후 제공됩니다.")
+# [탭 3: 틱톡 검색] - 심플한 문구 적용
+with tabs[2]: 
+    st.header("🎵 틱톡 검색")
+    st.info("틱톡은 셀레니움 연동 후 제공됩니다.")
 
+# [탭 4: 블로그 검색] - 키워드 먼저 배치
 with tabs[3]:
     st.header("📝 네이버 블로그 검색")
-    if st.button("검색"): st.dataframe(run_blog_search_real(st.text_input("블로그 키워드")))
+    blog_kw = st.text_input("블로그 검색 키워드 (예: 화장품 리뷰)")
+    if st.button("블로그 검색 시작", key="blog_btn"):
+        if blog_kw:
+            st.dataframe(run_blog_search_real(blog_kw))
+        else:
+            st.warning("키워드를 먼저 입력해주세요.")
 
-# [탭 5: DB 연동]
+# [탭 5: DB 관리] - 조회 -> 수정 -> 구글 시트 덮어쓰기 파이프라인
 with tabs[4]:
-    st.header("🗄️ 구글 시트 DB 연동")
-    st.write("크롤링한 데이터를 시트에 전송합니다.")
+    st.header("🗄️ 구글 시트 DB 관리")
+    st.write("구글 시트에 저장된 데이터를 불러와 직접 수정/삭제한 뒤, [최종 연동]을 눌러 안전하게 시트를 업데이트합니다.")
+    
+    db_brand = st.selectbox("관리할 브랜드 탭 선택", ["MELV", "SOLV", "UPPR"])
+    if st.button(f"📥 {db_brand} 시트 데이터 불러오기"):
+        records = gs.get_all_records(db_brand)
+        if records:
+            st.session_state.current_db = pd.DataFrame(records)
+            st.success("데이터를 성공적으로 불러왔습니다! 아래 표에서 바로 수정하세요.")
+        else:
+            st.warning("데이터가 없거나 시트를 불러오지 못했습니다.")
+            st.session_state.current_db = pd.DataFrame() # 빈 데이터프레임 초기화
+            
+    if 'current_db' in st.session_state and not st.session_state.current_db.empty:
+        # num_rows="dynamic" 옵션으로 행 추가/삭제 기능 지원
+        edited_df = st.data_editor(st.session_state.current_db, num_rows="dynamic", use_container_width=True)
+        
+        if st.button("💾 수정된 내용을 구글 시트에 최종 연동 (덮어쓰기)"):
+            with st.spinner("구글 시트 업데이트 중..."):
+                success, msg = gs.overwrite_sheet(db_brand, edited_df)
+                if success: st.success(msg)
+                else: st.error(msg)
 
-# [탭 6: 일반 대량 발송]
+# [탭 6: 대량 발송] - 시트 연동 + 바로 발송
 with tabs[5]:
-    st.header("✉️ 일반 템플릿 대량 발송")
-    if st.button("DB 대상 대량 발송 테스트"):
-        st.success("대량 발송은 MailManager 모듈로 처리됩니다.")
+    st.header("✉️ DB 연동 브랜드별 대량 발송")
+    col1, col2 = st.columns(2)
+    with col1: send_brand = st.selectbox("발송 브랜드", ["MELV", "SOLV", "UPPR"], key="send_b")
+    with col2: send_type = st.selectbox("템플릿", ["커머스 제안용", "시딩 제안용"], key="send_t")
+    
+    sender_name = st.text_input("마케터 이름 (내 이름)", "마케터", key="send_n")
+    
+    st.write(f"**{send_brand}** 시트에서 이메일 목록을 불러옵니다.")
+    if st.button(f"📥 {send_brand} 이메일 리스트 불러오기"):
+        records = gs.get_all_records(send_brand)
+        if records:
+            emails = [str(r.get('이메일', '')).strip() for r in records if str(r.get('이메일', '')).strip()]
+            st.session_state.email_list = list(set(emails)) # 중복 제거
+            st.success(f"총 {len(st.session_state.email_list)}개의 이메일을 불러왔습니다.")
+        else:
+            st.warning("이메일 목록을 찾을 수 없습니다.")
+            st.session_state.email_list = []
+            
+    target_emails = st.multiselect("발송할 대상 선택 (개별/전체 선택 가능)", st.session_state.get('email_list', []))
+    
+    st.divider()
+    def_sub, def_body = get_email_template(send_brand, send_type, "[인플루언서 이름]", sender_name)
+    with st.expander("👀 발송될 템플릿 미리보기 (명함 자동 첨부)", expanded=True):
+        st.markdown(f"**제목:** {def_sub}\n\n---")
+        st.markdown(def_body, unsafe_allow_html=True)
+        st.caption("📎 메일 하단에 '명함.png'가 첨부됩니다.")
+        
+    if st.button("🚀 선택한 대상에게 일괄 전송", type="primary"):
+        if not target_emails:
+            st.error("발송할 이메일을 선택해주세요.")
+        else:
+            with st.spinner("메일 발송 중... (최대 수십 초 소요)"):
+                try:
+                    with open("명함.png", "rb") as f: card_data = f.read()
+                except: card_data = None
+                
+                success_count = 0
+                for email_addr in target_emails:
+                    ok, msg = send_custom_mail(email_addr, def_sub.replace("[인플루언서 이름]", "크리에이터"), def_body.replace("[인플루언서 이름]", "크리에이터"), "대량발송", sender_name, io.BytesIO(card_data) if card_data else None)
+                    if ok: success_count += 1
+                st.success(f"✅ 총 {success_count}/{len(target_emails)}건 발송 성공!")
 
 # [탭 7: AI 회신 분석]
 with tabs[6]:
@@ -317,10 +356,14 @@ with tabs[6]:
                 if ai_results: st.dataframe(pd.DataFrame(ai_results))
             else: st.error(msg)
 
-# [탭 8: 성과 업데이트]
+# [탭 8: 성과 업데이트] - 에러 핸들링 강화
 with tabs[7]:
     st.header("📊 구글 시트 성과 수치 업데이트")
     metrics_brand = st.selectbox("업데이트할 브랜드", ["MELV", "SOLV", "UPPR"])
     if st.button(f"🚀 {metrics_brand}콘텐츠수치 업데이트"):
-        with st.spinner("수치를 긁어오는 중..."):
-            st.success(gs.update_content_metrics(metrics_brand, run_metrics_scraper_dummy))
+        if not gs.spreadsheet:
+            # 💡 [핵심] 연결 에러의 원인을 화면에 명확하게 붉은 글로 노출
+            st.error(f"🚨 구글 시트 연결 오류: {gs.error_msg}\n\n[해결방법]\n1. Secrets의 'google_sheet_name'이 실제 구글 시트 파일명과 똑같은지 확인하세요.\n2. 서비스 계정 이메일(client_email)을 구글 시트 우측 상단 '공유'에 넣고 '편집자' 권한을 주셨는지 확인하세요.")
+        else:
+            with st.spinner("수치를 긁어오는 중..."):
+                st.success(gs.update_content_metrics(metrics_brand, run_metrics_scraper_dummy))
