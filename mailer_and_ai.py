@@ -9,15 +9,14 @@ import io
 
 class MailManager:
     def __init__(self, email_account, app_pw, gemini_api_key):
-        self.my_email = email_account  # 발송 및 수신확인용 계정 (rizzsender@gmail.com)
+        self.my_email = email_account  
         self.app_pw = app_pw
-        self.reply_to = "hcommerceinc1@gmail.com" # 고객이 회신 누를 때 갈 주소
+        self.reply_to = "hcommerceinc1@gmail.com" 
         
         genai.configure(api_key=gemini_api_key)
-        self.ai_model = genai.GenerativeModel('gemini-3.1-pro')
+        self.ai_model = genai.GenerativeModel('models/gemini-2.0-flash')
 
     def generate_email_content(self, brand, template_type):
-        """앱 화면 미리보기 및 실제 발송에 쓰일 메일 제목과 본문을 생성합니다."""
         subject = f"[{brand}] 크리에이터님, {brand}에서 브랜드 협업을 제안 드립니다."
         if template_type == "시딩 제안용":
             body = f"안녕하세요 크리에이터님! 트렌디한 감성의 브랜드 {brand}입니다.\n\n제공해 드리는 저희 {brand}의 제품을 경험해 보시고, 콘텐츠로 소개해주실 수 있을까요?\n\n감사합니다."
@@ -35,7 +34,7 @@ class MailManager:
                     msg['Subject'] = subject
                     msg['From'] = self.my_email
                     msg['To'] = email_addr
-                    msg.add_header('reply-to', self.reply_to) # 회신은 지정된 곳으로 가도록 설정
+                    msg.add_header('reply-to', self.reply_to)
                     msg.set_content(body)
                     
                     try:
@@ -45,7 +44,7 @@ class MailManager:
                         img.save(img_byte_arr, format='PNG')
                         msg.add_attachment(img_byte_arr.getvalue(), maintype='image', subtype='png', filename='명함_resized.png')
                     except Exception:
-                        pass # 명함.png 파일이 없으면 패스
+                        pass
                     server.send_message(msg)
             return True, "메일 발송 성공"
         except Exception as e:
@@ -54,7 +53,6 @@ class MailManager:
     def check_replies_and_analyze(self):
         analyzed_results = []
         try:
-            # rizzsender 계정의 수신함으로 접속합니다 (전달받은 메일을 읽음)
             mail = imaplib.IMAP4_SSL("imap.gmail.com")
             mail.login(self.my_email, self.app_pw)
             mail.select("inbox")
@@ -71,7 +69,6 @@ class MailManager:
                     if isinstance(response_part, tuple):
                         msg = email.message_from_bytes(response_part[1])
                         
-                        # 메일 본문 추출
                         body = ""
                         if msg.is_multipart():
                             for part in msg.walk():

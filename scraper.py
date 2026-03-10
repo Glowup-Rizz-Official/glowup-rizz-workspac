@@ -6,7 +6,6 @@ from bs4 import BeautifulSoup
 from googleapiclient.discovery import build
 
 def run_insta_scraper_real(keyword, progress_bar):
-    """검색 엔진 우회를 시도하고, 차단될 경우 실전 테스트용 예비 데이터를 반환합니다."""
     url = f"https://html.duckduckgo.com/html/?q=site:instagram.com {keyword}"
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     
@@ -23,12 +22,7 @@ def run_insta_scraper_real(keyword, progress_bar):
                 if len(parts) > 1:
                     username = parts[1].replace('/', '').split('?')[0]
                     if username and username not in ['explore', 'developer', 'about', 'legal', 'p', 'reel']:
-                        results.append({
-                            "닉네임": username,
-                            "프로필링크": f"https://www.instagram.com/{username}",
-                            "팔로워수": "수기 확인 필요",
-                            "이메일": ""
-                        })
+                        results.append({"닉네임": username, "프로필링크": f"https://www.instagram.com/{username}", "팔로워수": "수기 확인 필요", "이메일": ""})
                         
         progress_bar.progress(100, text="탐색 완료!")
         time.sleep(1)
@@ -36,24 +30,13 @@ def run_insta_scraper_real(keyword, progress_bar):
         
         df = pd.DataFrame(results).drop_duplicates(subset=['닉네임'])
         
-        # 💡 [핵심 로직] 서버 차단으로 0건이 나왔을 때, MVP 테스트를 위한 실제 계정 제공
         if df.empty:
             if "뷰티" in keyword or "화장품" in keyword:
-                fallback_data = [
-                    {"닉네임": "ponysmakeup", "프로필링크": "https://www.instagram.com/ponysmakeup", "팔로워수": "수기 확인 필요", "이메일": ""},
-                    {"닉네임": "risabae_art", "프로필링크": "https://www.instagram.com/risabae_art", "팔로워수": "수기 확인 필요", "이메일": ""},
-                    {"닉네임": "lamuqe_magicup", "프로필링크": "https://www.instagram.com/lamuqe_magicup", "팔로워수": "수기 확인 필요", "이메일": ""}
-                ]
+                fallback_data = [{"닉네임": "ponysmakeup", "프로필링크": "https://www.instagram.com/ponysmakeup", "팔로워수": "수기 확인 필요", "이메일": ""}, {"닉네임": "risabae_art", "프로필링크": "https://www.instagram.com/risabae_art", "팔로워수": "수기 확인 필요", "이메일": ""}]
             elif "패션" in keyword or "옷" in keyword:
-                fallback_data = [
-                    {"닉네임": "kimehwa", "프로필링크": "https://www.instagram.com/kimehwa", "팔로워수": "수기 확인 필요", "이메일": ""},
-                    {"닉네임": "bboggooo", "프로필링크": "https://www.instagram.com/bboggooo", "팔로워수": "수기 확인 필요", "이메일": ""}
-                ]
+                fallback_data = [{"닉네임": "kimehwa", "프로필링크": "https://www.instagram.com/kimehwa", "팔로워수": "수기 확인 필요", "이메일": ""}]
             else:
-                fallback_data = [
-                    {"닉네임": "test_influencer1", "프로필링크": "https://www.instagram.com/test1", "팔로워수": "수기 확인 필요", "이메일": ""},
-                    {"닉네임": "test_influencer2", "프로필링크": "https://www.instagram.com/test2", "팔로워수": "수기 확인 필요", "이메일": ""}
-                ]
+                fallback_data = [{"닉네임": "test_influencer1", "프로필링크": "https://www.instagram.com/test1", "팔로워수": "수기 확인 필요", "이메일": ""}]
             return pd.DataFrame(fallback_data), ["서버 우회 차단으로 인해 '실전 예비 데이터'가 로드되었습니다."]
             
         return df, []
@@ -61,7 +44,6 @@ def run_insta_scraper_real(keyword, progress_bar):
     except Exception as e:
         return pd.DataFrame({"에러": [f"우회 크롤링 에러: {e}"]}), []
 
-# --- (아래 유튜브, 블로그, 수치 업데이트 함수는 직전과 동일하게 유지해 주세요!) ---
 def run_youtube_search_real(keyword, api_key, min_views=10000):
     try:
         youtube = build('youtube', 'v3', developerKey=api_key)
