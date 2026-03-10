@@ -16,7 +16,7 @@ import google.generativeai as genai
 # 모듈 임포트
 from scraper import run_insta_scraper_real, run_tiktok_scraper_real, run_blog_search_real, run_youtube_search_real, run_metrics_scraper_real
 from gsheets import GoogleSheetsManager
-from mailer_and_ai import MailManager, reset_ai_quota
+from mailer_and_ai import MailManager
 
 st.set_page_config(page_title="PB 크리에이터 섭외 자동화", layout="wide")
 
