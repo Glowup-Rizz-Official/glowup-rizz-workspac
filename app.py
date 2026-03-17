@@ -10,8 +10,8 @@ import time
 import os
 
 # --- [1. 기본 설정 및 보안] ---
-EMAIL_USER = "rizzsender@gmail.com"
-EMAIL_PW = "rnwz flnc jsil hpkh"  # 혜란님의 앱 비밀번호
+EMAIL_USER = st.secrets["EMAIL_USER"]
+EMAIL_PW = st.secrets["EMAIL_PW"]
 REPLY_TO = "hcommerceinc1@gmail.com"
 IMAGE_PATH = "명함.png" # 파일 이름을 '명함.png'로 해서 같은 폴더에 두세요.
 
