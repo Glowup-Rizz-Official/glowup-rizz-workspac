@@ -77,7 +77,7 @@ if 'nick_list' not in st.session_state: st.session_state.nick_list = ""
 if 'email_list' not in st.session_state: st.session_state.email_list = ""
 
 with tab1:
-    st.title("✉️ 초개인화 대량 발송 시스템")
+    st.title("✉️ 메일 대량 발송 시스템")
     
     col_set1, col_set2, col_set3 = st.columns([1, 1, 1])
     with col_set1:
