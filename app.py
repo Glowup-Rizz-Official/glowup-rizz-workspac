@@ -71,7 +71,7 @@ if 'nick_input' not in st.session_state: st.session_state.nick_input = ""
 if 'email_input' not in st.session_state: st.session_state.email_input = ""
 
 with tab1:
-    st.title("✉️ 초개인화 대량 발송 시스템")
+    st.title("✉️ 개인화 대량 발송 시스템")
     
     col_set1, col_set2, col_set3 = st.columns([1, 1, 1])
     with col_set1:
