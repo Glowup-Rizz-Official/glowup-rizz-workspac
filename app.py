@@ -4,6 +4,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from email.mime.application import MIMEApplication
+from email.utils import formataddr # 💡 이메일 주소 표준화를 위해 추가된 마법의 도구!
 import pandas as pd
 import sqlite3
 import datetime
@@ -209,13 +210,13 @@ with tab1:
         st.subheader("👀 실시간 미리보기")
         s_temp = templates[brand_choice][type_choice]
         
-        # 💡 줄바꿈(\n)을 HTML 태그(<br>)로 완벽하게 치환
+        # 💡 미리보기용 줄바꿈 처리
         p_body = s_temp['body'].format(nickname=nicks[0]).replace('\n', '<br>')
         
         with st.container(border=True):
             st.markdown(f"**제목:** {s_temp['subject']}")
             if type_choice == 'commerce' and brand_choice in PPT_FILES:
-                st.info(f"📎 첨부 예정: {PPT_FILES[brand_choice]}")
+                st.info(f"📎 첨부 예정 파일: {PPT_FILES[brand_choice]}")
             st.divider()
             st.markdown(f"<div style='font-size: 14px; line-height: 1.6;'>{p_body}</div>", unsafe_allow_html=True)
             if os.path.exists(IMAGE_PATH): st.image(IMAGE_PATH, width=230)
@@ -247,12 +248,14 @@ with tab1:
                     server.login(user_id, user_pw)
 
                     msg = MIMEMultipart('related')
-                    msg['From'] = f"{sender_name} <{user_id}>"
+                    
+                    # 💡 여기가 핵심 수정 포인트입니다! 서버가 화내지 않도록 완벽한 포맷팅!
+                    msg['From'] = formataddr((sender_name, user_id))
                     msg['To'] = email
                     msg['Subject'] = s_temp['subject']
                     msg.add_header('Reply-To', REPLY_TO)
 
-                    # 💡 발송되는 실제 메일 본문에도 줄바꿈 태그 완벽 적용
+                    # 💡 전송되는 메일 본문에도 줄바꿈이 예쁘게 적용되도록 수정!
                     final_body = s_temp['body'].format(nickname=nick).replace('\n', '<br>')
                     f_html = f"<html><body><div style='font-family:sans-serif; font-size:14px; line-height:1.6;'>{final_body}</div><br><img src='cid:card' style='width:230px;'></body></html>"
                     
@@ -265,7 +268,6 @@ with tab1:
                         image.add_header('Content-ID', '<card>')
                         msg.attach(image)
 
-                    # PPT 첨부 로직
                     if type_choice == 'commerce' and brand_choice in PPT_FILES:
                         ppt_path = PPT_FILES[brand_choice]
                         if os.path.exists(ppt_path):
