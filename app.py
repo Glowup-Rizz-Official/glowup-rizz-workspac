@@ -31,7 +31,7 @@ def init_db():
 
 init_db()
 
-# --- [2. 원본 템플릿 데이터베이스 (mail_send.py 문구 100% 복구)] ---
+# --- [2. 원본 템플릿 데이터베이스] ---
 templates = {
     'MELV': {
         'commerce': {
@@ -72,6 +72,9 @@ https://a-bly.com/app/markets/108879/
 이번 제품 시딩은 직접 사용해 보신 후 인스타그램(피드 또는 릴스)에 1회 업로드해 주시는 형태로 진행됩니다. 
 정해진 틀이나 형식에 얽매이기보다는, 평소 크리에이터님이 보여주시는 예쁜 감성 그대로 묻어나지 않는 립타투와 투명한 립시럽의 시너지를 자연스럽게 담아주시면 됩니다! ☺️
 
+또한 업로드해 주실 때 저희 멜브 공식 계정(@melv.kr) 태그와 함께, 전달해 드릴 제품 판매 링크를 기재해 주시면 정말 감사하겠습니다.
+제품 사용 후 만족스러우시다면 추후 커머스 등 더 좋은 인연으로도 이어질 수 있기를 기대합니다.
+
 제품 수령을 희망하신다면 [성함/연락처/주소]를 기재하여 편하게 회신 부탁드리겠습니다.
 
 감사합니다.
@@ -92,6 +95,10 @@ https://a-bly.com/app/markets/108879/
 제품 확인하기
 https://solv.co.kr/aboutus/productstory.html
 
+[협업 제안 내용]
+협업 형태: 인플루언서 전용 링크를 통한 판매 수익 쉐어 (RS)
+플랫폼: 에이블리, 지그재그 등 협의 가능
+
 단순한 일회성 홍보를 넘어, 상호 윈윈할 수 있는 탄탄한 커머스 파트너십을 구축하고 싶습니다.
 상세 제안서 검토나 미팅 일정을 잡고자 하신다면 편하게 회신 부탁드립니다.
 
@@ -110,6 +117,12 @@ https://solv.co.kr/aboutus/productstory.html
 제품 확인하기
 https://solv.co.kr/aboutus/productstory.html
 
+이번 시딩은 제품을 직접 경험해 보시고 인스타그램(피드 또는 릴스)에 1회 업로드해 주시는 일정으로 생각하고 있습니다. 
+형식적인 리뷰보다는, 평소 크리에이터님 특유의 무드로 '화잘먹 윤광 코팅' 효과를 일상 속에서 예쁘게 보여주시면 충분합니다. 🩵
+
+더불어, 업로드하실 때 솔브 공식 계정(@solv.kr) 태그와 함께 제품 판매 링크를 걸어주시면 저희에게 정말 큰 힘이 될 것 같습니다!
+이번 만남을 시작으로 좋은 인연이 닿아 추후 커머스 등으로 관계를 확장해 나가길 기대합니다.
+
 제품 수령을 희망하신다면 [성함/연락처/주소]를 기재하여 편하게 회신 부탁드리겠습니다.
 
 감사합니다.
@@ -121,14 +134,21 @@ https://solv.co.kr/aboutus/productstory.html
             'subject': '[제안] 라이프/패션 브랜드 어퍼(UPPR) 커머스 협업 제안드립니다.',
             'body': """안녕하세요 {nickname}님, UPPR 담당자 박혜란입니다.
 
-저희 브랜드 어퍼(UPPR)의 힙한 무드와 크리에이터님의 핏이 아주 잘 맞을 것 같아, 판매 수익 쉐어형 커머스(공구) 진행을 제안드립니다.
+저희 브랜드 어퍼(UPPR)의 힙한 무드와 크리에이터님의 핏이 아주 잘 맞을 것 같아, 판매 수익 쉐어형 커머스(공구) 진행을 제안드리고자 연락드렸습니다.
 
 [브랜드 및 제품 소개]
 브랜드명: UPPR(어퍼)
 주력 제품: 코듀로이 볼캡 or 시그니처 체크셔츠
-특장점: 광대와 두상을 완벽하게 커버하는 소두핏 볼캡
+특장점: 광대와 두상을 완벽하게 커버하는 소두핏 볼캡과, 볼캡과 찰떡궁합인 오버핏 셔츠로 감각적인 꾸안꾸 스타일링 완성
 제품 확인하기
 https://smartstore.naver.com/uppr
+
+[협업 제안 내용]
+협업 형태: 판매 링크를 통한 판매 수익 쉐어 (RS)
+플랫폼: 네이버 쇼핑 커넥트 (에이블리, 지그재그 등도 협의 가능)
+
+크리에이터님과 함께 성공적인 판매 레퍼런스를 만들어가고 싶습니다.
+관련하여 상세 제안서 확인이 필요하시거나 논의할 부분이 있으시다면 언제든 회신 부탁드립니다.
 
 감사합니다.
 박혜란 드림"""
@@ -137,10 +157,21 @@ https://smartstore.naver.com/uppr
             'subject': '[협찬] 라이프/패션 브랜드 어퍼(UPPR) 제품 시딩 제안드립니다.',
             'body': """안녕하세요 {nickname}님, UPPR 담당자 박혜란입니다.
 
-평소 올려주시는 감각적인 데일리룩 코디를 잘 보고 있어, 저희 어퍼(UPPR) 브랜드의 제품 시딩(협찬)을 제안드립니다.
+평소 올려주시는 감각적인 데일리룩 코디를 잘 보고 있어, 저희 어퍼(UPPR) 브랜드의 제품을 꼭 한번 경험해 보셨으면 하는 마음에 시딩(협찬)을 제안드립니다.
 
+[브랜드 및 제품 소개]
+브랜드명: UPPR(어퍼)
+제공 제품: UPPR 코듀로이 볼캡 (얼굴형 완벽 커버) or 시그니처 체크셔츠 (오버핏)
 제품 확인하기
 https://smartstore.naver.com/uppr
+
+이번 협찬은 제품 착용 후 인스타그램(피드 또는 릴스)에 1회 업로드해 주시는 형태로 진행하고자 합니다. 
+딱딱한 리뷰 형식보다는, 평소 크리에이터님이 즐겨 입으시는 데일리룩에 가볍게 툭 매치해서 힙하고 편안한 꾸안꾸룩으로 연출해 주시면 정말 좋을 것 같아요! 🧢
+
+게시물 작성 시 저희 어퍼 공식 계정(@uppr_official) 태그와 함께 전달해 드릴 제품 판매 링크도 같이 남겨주시면 정말 감사하겠습니다.
+만족스러운 핏을 경험하셨다면 추후 더 큰 비즈니스 협업으로도 이어질 수 있기를 희망합니다.
+
+제품 수령을 원하신다면 [성함/연락처/주소]와 함께 [원하시는 품목(코듀로이 볼캡 또는 시그니처 체크셔츠) 및 사이즈]를 기재하여 편하게 회신 부탁드리겠습니다.
 
 감사합니다.
 박혜란 드림"""
@@ -177,14 +208,16 @@ with tab1:
     if nicks and emails:
         st.subheader("👀 실시간 미리보기")
         s_temp = templates[brand_choice][type_choice]
-        p_body = s_temp['body'].format(nickname=nicks[0])
+        
+        # 💡 줄바꿈(\n)을 HTML 태그(<br>)로 완벽하게 치환
+        p_body = s_temp['body'].format(nickname=nicks[0]).replace('\n', '<br>')
         
         with st.container(border=True):
             st.markdown(f"**제목:** {s_temp['subject']}")
             if type_choice == 'commerce' and brand_choice in PPT_FILES:
                 st.info(f"📎 첨부 예정: {PPT_FILES[brand_choice]}")
             st.divider()
-            st.markdown(f"<div style='font-size: 14px; line-height: 1.6;'>{p_body.replace('\\n', '<br>')}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size: 14px; line-height: 1.6;'>{p_body}</div>", unsafe_allow_html=True)
             if os.path.exists(IMAGE_PATH): st.image(IMAGE_PATH, width=230)
 
         if st.button(f"🚀 {len(nicks)}명에게 일괄 발송 시작", type="primary", use_container_width=True):
@@ -219,7 +252,10 @@ with tab1:
                     msg['Subject'] = s_temp['subject']
                     msg.add_header('Reply-To', REPLY_TO)
 
-                    f_html = f"<html><body><div style='font-family:sans-serif; font-size:14px;'>{s_temp['body'].format(nickname=nick).replace('\\n', '<br>')}</div><br><img src='cid:card' style='width:230px;'></body></html>"
+                    # 💡 발송되는 실제 메일 본문에도 줄바꿈 태그 완벽 적용
+                    final_body = s_temp['body'].format(nickname=nick).replace('\n', '<br>')
+                    f_html = f"<html><body><div style='font-family:sans-serif; font-size:14px; line-height:1.6;'>{final_body}</div><br><img src='cid:card' style='width:230px;'></body></html>"
+                    
                     msg_alt = MIMEMultipart('alternative')
                     msg.attach(msg_alt)
                     msg_alt.attach(MIMEText(f_html, 'html', 'utf-8'))
@@ -229,6 +265,7 @@ with tab1:
                         image.add_header('Content-ID', '<card>')
                         msg.attach(image)
 
+                    # PPT 첨부 로직
                     if type_choice == 'commerce' and brand_choice in PPT_FILES:
                         ppt_path = PPT_FILES[brand_choice]
                         if os.path.exists(ppt_path):
@@ -237,20 +274,24 @@ with tab1:
                                 part['Content-Disposition'] = f'attachment; filename="{os.path.basename(ppt_path)}"'
                                 msg.attach(part)
 
-                    server.send_message(msg); server.quit()
+                    server.send_message(msg)
+                    server.quit()
                     success_count += 1
                     
                     conn = sqlite3.connect('mail_log.db')
                     conn.execute("INSERT INTO send_log (channel_name, email, status, sent_at) VALUES (?, ?, ?, ?)",
                                  (nick, email, "성공", datetime.datetime.now().strftime("%y/%m/%d %H:%M")))
-                    conn.commit(); conn.close()
+                    conn.commit()
+                    conn.close()
                     
                     progress.progress((i + 1) / len(nicks))
                     time.sleep(1.5)
 
                 st.success(f"🎉 총 {success_count}건 발송 성공!")
-                st.session_state.n_input, st.session_state.e_input = "", ""
-                time.sleep(1); st.rerun()
+                st.session_state.n_input = ""
+                st.session_state.e_input = ""
+                time.sleep(1)
+                st.rerun()
 
             except Exception as e:
                 st.error(f"❌ 오류 발생: {e}")
@@ -259,4 +300,5 @@ with tab2:
     st.subheader("📊 발송 로그")
     conn = sqlite3.connect('mail_log.db')
     log_df = pd.read_sql_query("SELECT * FROM send_log ORDER BY sent_at DESC", conn)
-    conn.close(); st.dataframe(log_df, use_container_width=True, hide_index=True)
+    conn.close()
+    st.dataframe(log_df, use_container_width=True, hide_index=True)
