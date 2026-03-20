@@ -11,7 +11,7 @@ import os
 
 # --- [1. 기본 설정] ---
 REPLY_TO = "hcommerceinc1@gmail.com"
-IMAGE_PATH = "명함.png" # 💡 같은 폴더에 이 이름으로 파일이 있어야 합니다.
+IMAGE_PATH = "명함.png"
 
 def init_db():
     conn = sqlite3.connect('mail_history.db')
@@ -23,45 +23,44 @@ def init_db():
 
 init_db()
 
-# --- [2. 원본 템플릿 데이터베이스 (mail_send.py 내용 그대로)] ---
+# --- [2. 혜란님 원본 템플릿 복구] ---
 templates = {
     'MELV': {
         'commerce': {
             'subject': '[제안] 뷰티 브랜드 멜브(MELV) 커머스 협업 제안드립니다.',
-            'body': """안녕하세요 {nickname}님, MELV MD 박혜란입니다.<br><br>저희 뷰티 브랜드 멜브(MELV)의 제품 무드와 시너지가 날 것 같아 함께 수익 쉐어형 커머스(공구)를 진행하고자 제안드립니다.<br><br><b>[브랜드 및 제품 소개]</b><br>브랜드명: MELV(멜브)<br>주력 제품: 립시럽(맑은 유리알 광택), 립타투(24시간 지속력/뮤티드 컬러/오버립)<br>성과 지표: 카카오톡 선물하기 뷰티 랭킹 1위 달성, 실사용자 리뷰 및 재구매율 기반 제품력 입증 완료<br>제품 확인하기<br>https://a-bly.com/app/markets/108879/<br><br><b>[협업 제안 내용]</b><br>협업 형태: 인플루언서 전용 링크를 통한 판매 수익 쉐어 (RS)<br>플랫폼: 에이블리, 카카오톡 선물하기, 지그재그 등 협의 가능<br><br>단순 광고를 넘어 함께 윈윈할 수 있는 커머스 파트너십을 맺고 싶습니다.<br>관련하여 상세 제안서 검토를 희망하시거나 미팅이 가능하시다면 회신 부탁드립니다.<br><br>감사합니다.<br>박혜란 드림"""
+            'body': """안녕하세요 {nickname}님, MELV MD 박혜란입니다.<br><br>저희 뷰티 브랜드 멜브(MELV)의 제품 무드와 시너지가 날 것 같아 함께 수익 쉐어형 커머스(공구)를 진행하고자 제안드립니다.<br><br><b>[브랜드 및 제품 소개]</b><br>브랜드명: MELV(멜브)<br>주력 제품: 립시럽(맑은 유리알 광택), 립타투(24시간 지속력/뮤티드 컬러/오버립)<br>성과 지표: 카카오톡 선물하기 뷰티 랭킹 1위 달성, 실사용자 리뷰 및 재구매율 기반 제품력 입증 완료<br>제품 확인하기: https://a-bly.com/app/markets/108879/<br><br><b>[협업 제안 내용]</b><br>협업 형태: 인플루언서 전용 링크를 통한 판매 수익 쉐어 (RS)<br>플랫폼: 에이블리, 카카오톡 선물하기, 지그재그 등 협의 가능<br><br>단순 광고를 넘어 함께 윈윈할 수 있는 커머스 파트너십을 맺고 싶습니다.<br>상세 제안서 검토를 희망하시거나 미팅이 가능하시다면 회신 부탁드립니다.<br><br>감사합니다.<br>박혜란 드림"""
         },
         'seeding': {
             'subject': '[협찬] 뷰티 브랜드 멜브(MELV) 제품 시딩 제안드립니다.',
-            'body': """안녕하세요 {nickname}님, MELV MD 박혜란입니다.<br><br>크리에이터님의 뷰티 콘텐츠 무드와 저희 브랜드 멜브(MELV)의 결이 정말 잘 어울릴 것 같아, 제품 시딩(협찬)을 제안드리고자 연락드렸습니다.<br><br><b>[브랜드 및 제품 소개]</b><br>브랜드명: MELV(멜브)<br>제공 제품: 립시럽(맑은 광택) & 립타투(24시간 지속/오버립) 베스트 라인업<br>제품 확인하기<br>https://a-bly.com/app/markets/108879/<br><br>이번 제품 시딩은 직접 사용해 보신 후 인스타그램(피드 또는 릴스)에 1회 업로드해 주시는 형태로 진행됩니다. 정해진 틀이나 형식에 얽매이기보다는, 평소 크리에이터님이 보여주시는 예쁜 감성 그대로 묻어나지 않는 립타투와 투명한 립시럽의 시너지를 자연스럽게 담아주시면 됩니다! ☺️<br><br>또한 업로드해 주실 때 저희 멜브 공식 계정(@melv.kr) 태그와 함께, 전달해 드릴 제품 판매 링크를 기재해 주시면 정말 감사하겠습니다.<br>제품 사용 후 만족스러우시다면 추후 커머스 등 더 좋은 인연으로도 이어질 수 있기를 기대합니다.<br><br>제품 수령을 희망하신다면 [성함/연락처/주소]를 기재하여 편하게 회신 부탁드리겠습니다.<br><br>감사합니다.<br>박혜란 드림"""
+            'body': """안녕하세요 {nickname}님, MELV MD 박혜란입니다.<br><br>크리에이터님의 뷰티 콘텐츠 무드와 저희 브랜드 멜브(MELV)의 결이 정말 잘 어울릴 것 같아, 제품 시딩(협찬)을 제안드립니다.<br><br><b>[브랜드 및 제품 소개]</b><br>브랜드명: MELV(멜브)<br>제공 제품: 립시럽(맑은 광택) & 립타투(24시간 지속/오버립) 베스트 라인업<br>제품 확인하기: https://a-bly.com/app/markets/108879/<br><br>제품 수령을 희망하신다면 [성함/연락처/주소]를 기재하여 편하게 회신 부탁드리겠습니다.<br><br>감사합니다.<br>박혜란 드림"""
         }
     },
     'SOLV': {
         'commerce': {
             'subject': '[제안] 뷰티 브랜드 솔브(SOLV) 커머스 협업 제안드립니다.',
-            'body': """안녕하세요 {nickname}님, SOLV 담당자 박혜란입니다.<br><br>평소 올려주시는 콘텐츠를 인상 깊게 보았습니다. 저희 브랜드 솔브(SOLV)와 크리에이터님이 함께 시너지를 낼 수 있는 수익 쉐어형 커머스(공구) 파트너십을 제안드립니다.<br><br><b>[브랜드 및 제품 소개]</b><br>브랜드명: SOLV(솔브)<br>주력 제품: 더블세럼 모델링팩 (물 조절 필요 없는 3초 컷 홈에스테틱)<br>특장점: 쿨링 진정은 물론, 떼어낸 후에도 마르지 않는 윤광 코팅으로 완벽한 화잘먹 피부 완성<br>제품 확인하기<br>https://solv.co.kr/aboutus/productstory.html<br><br><b>[협업 제안 내용]</b><br>협업 형태: 인플루언서 전용 링크를 통한 판매 수익 쉐어 (RS)<br>플랫폼: 에이블리, 지그재그 등 협의 가능<br><br>상호 윈윈할 수 있는 탄탄한 커머스 파트너십을 구축하고 싶습니다.<br>상세 제안서 검토나 미팅 일정을 잡고자 하신다면 편하게 회신 부탁드립니다.<br><br>감사합니다.<br>박혜란 드림"""
+            'body': """안녕하세요 {nickname}님, SOLV 담당자 박혜란입니다.<br><br>저희 브랜드 솔브(SOLV)와 함께 시너지를 낼 수 있는 수익 쉐어형 커머스 파트너십을 제안드립니다.<br><br><b>주력 제품:</b> 더블세럼 모델링팩 (물 조절 필요 없는 3초 컷 홈에스테틱)<br>제품 확인하기: https://solv.co.kr/aboutus/productstory.html<br><br>상세 제안서 검토나 미팅 일정을 잡고자 하신다면 편하게 회신 부탁드립니다.<br><br>감사합니다.<br>박혜란 드림"""
         },
         'seeding': {
             'subject': '[협찬] 뷰티 브랜드 솔브(SOLV) 화잘먹 모델링팩 시딩 제안드립니다.',
-            'body': """안녕하세요 {nickname}님, SOLV 담당자 박혜란입니다.<br><br>크리에이터님 특유의 맑은 분위기와 저희 브랜드 솔브(SOLV)가 만나면 좋은 시너지가 날 것 같아 제품 시딩(협찬)을 제안드립니다.<br><br><b>[브랜드 및 제품 소개]</b><br>브랜드명: SOLV(솔브)<br>제공 제품: 솔브 더블세럼 모델링팩 (번거로운 물 조절 없이 1제와 2제 세럼을 섞어 쓰는 아이스 젤리팩)<br>제품 확인하기<br>https://solv.co.kr/aboutus/productstory.html<br><br>이번 시딩은 제품을 직접 경험해 보시고 인스타그램(피드 또는 릴스)에 1회 업로드해 주시는 일정으로 생각하고 있습니다. 형식적인 리뷰보다는, 평소 크리에이터님 특유의 무드로 '화잘먹 윤광 코팅' 효과를 일상 속에서 예쁘게 보여주시면 충분합니다. 🩵<br><br>업로드하실 때 솔브 공식 계정(@solv.kr) 태그와 함께 제품 판매 링크를 걸어주시면 저희에게 정말 큰 힘이 될 것 같습니다!<br>제품 수령을 희망하신다면 [성함/연락처/주소]를 기재하여 편하게 회신 부탁드리겠습니다.<br><br>감사합니다.<br>박혜란 드림"""
+            'body': """안녕하세요 {nickname}님, SOLV 담당자 박혜란입니다.<br><br>저희 브랜드 솔브(SOLV)의 '화잘먹 윤광 코팅' 효과를 예쁘게 보여주실 수 있을 것 같아 제품 시딩을 제안드립니다.<br><br>제품 수령을 희망하신다면 회신 부탁드리겠습니다.<br><br>감사합니다.<br>박혜란 드림"""
         }
     },
     'UPPR': {
         'commerce': {
             'subject': '[제안] 라이프/패션 브랜드 어퍼(UPPR) 커머스 협업 제안드립니다.',
-            'body': """안녕하세요 {nickname}님, UPPR 담당자 박혜란입니다.<br><br>저희 브랜드 어퍼(UPPR)의 힙한 무드와 크리에이터님의 핏이 아주 잘 맞을 것 같아, 판매 수익 쉐어형 커머스(공구) 진행을 제안드리고자 연락드렸습니다.<br><br><b>[브랜드 및 제품 소개]</b><br>브랜드명: UPPR(어퍼)<br>주력 제품: 코듀로이 볼캡 or 시그니처 체크셔츠<br>특장점: 광대와 두상을 완벽하게 커버하는 소두핏 볼캡과, 볼캡과 찰떡궁합인 오버핏 셔츠로 감각적인 꾸안꾸 스타일링 완성<br>제품 확인하기<br>https://smartstore.naver.com/uppr<br><br><b>[협업 제안 내용]</b><br>협업 형태: 판매 링크를 통한 판매 수익 쉐어 (RS)<br>플랫폼: 네이버 쇼핑 커넥트 (에이블리, 지그재그 등도 협의 가능)<br><br>관련하여 상세 제안서 확인이 필요하시거나 논의할 부분이 있으시다면 언제든 회신 부탁드립니다.<br><br>감사합니다.<br>박혜란 드림"""
+            'body': """안녕하세요 {nickname}님, UPPR 담당자 박혜란입니다.<br><br>저희 브랜드 어퍼(UPPR)의 힙한 무드와 크리에이터님의 핏이 아주 잘 맞을 것 같아 협업을 제안드립니다.<br><br><b>주력 제품:</b> 광대와 두상을 완벽하게 커버하는 소두핏 볼캡 or 시그니처 체크셔츠<br>제품 확인하기: https://smartstore.naver.com/uppr<br><br>감사합니다.<br>박혜란 드림"""
         },
         'seeding': {
             'subject': '[협찬] 라이프/패션 브랜드 어퍼(UPPR) 제품 시딩 제안드립니다.',
-            'body': """안녕하세요 {nickname}님, UPPR 담당자 박혜란입니다.<br><br>평소 올려주시는 감각적인 데일리룩 코디를 잘 보고 있어, 저희 어퍼(UPPR) 브랜드의 제품을 꼭 한번 경험해 보셨으면 하는 마음에 시딩(협찬)을 제안드립니다.<br><br><b>[브랜드 및 제품 소개]</b><br>브랜드명: UPPR(어퍼)<br>제공 제품: UPPR 코듀로이 볼캡 (얼굴형 완벽 커버) or 시그니처 체크셔츠 (오버핏)<br>제품 확인하기<br>https://smartstore.naver.com/uppr<br><br>이번 협찬은 제품 착용 후 인스타그램(피드 또는 릴스)에 1회 업로드해 주시는 형태로 진행하고자 합니다. 딱딱한 리뷰 형식보다는, 평소 크리에이터님이 즐겨 입으시는 데일리룩에 가볍게 툭 매치해서 힙하고 편안한 꾸안꾸룩으로 연출해 주시면 정말 좋을 것 같아요! 🧢<br><br>제품 수령을 원하신다면 [성함/연락처/주소]와 함께 [원하시는 품목 및 사이즈]를 기재하여 편하게 회신 부탁드리겠습니다.<br><br>감사합니다.<br>박혜란 드림"""
+            'body': """안녕하세요 {nickname}님, UPPR 담당자 박혜란입니다.<br><br>감각적인 데일리룩 코디에 저희 어퍼(UPPR) 볼캡을 가볍게 툭 매치해 주시면 정말 좋을 것 같아 시딩을 제안드립니다.<br><br>감사합니다.<br>박혜란 드림"""
         }
     }
 }
 
 # --- [3. UI 레이아웃] ---
-st.set_page_config(page_title="Glowup Rizz 발송기", layout="wide")
+st.set_page_config(page_title="Glowup Rizz 대량 발송기", layout="wide")
 tab1, tab2 = st.tabs(["✉️ 메일 발송", "📊 발송 로그"])
 
-# 💡 세션 상태를 사용하여 텍스트 데이터 유지 및 초기화
 if 'nick_raw' not in st.session_state: st.session_state.nick_raw = ""
 if 'email_raw' not in st.session_state: st.session_state.email_raw = ""
 
@@ -86,26 +85,19 @@ with tab1:
     with col_in2:
         st.session_state.email_raw = st.text_area("2. 이메일 리스트 (줄바꿈 구분)", value=st.session_state.email_raw, height=180)
 
-    # 💡 데이터 가공 (빈 줄 제외)
     n_list = [n.strip() for n in st.session_state.nick_raw.split('\n') if n.strip()]
     e_list = [e.strip() for e in st.session_state.email_raw.split('\n') if e.strip()]
     
-    # 0건 발송 방지를 위한 체크
     if n_list and e_list:
-        if len(n_list) != len(e_list):
-            st.warning(f"⚠️ 닉네임({len(n_list)}개)과 이메일({len(e_list)}개)의 개수가 다릅니다. 확인해주세요!")
-        
         st.subheader("👀 발송 미리보기")
         s_temp = templates[brand_choice][type_choice]
-        preview_body = s_temp['body'].format(nickname=n_list[0])
-        
         with st.container(border=True):
             st.markdown(f"**제목:** {s_temp['subject']}")
             st.markdown(f"**수신:** {n_list[0]} ({e_list[0]})")
             st.divider()
-            st.markdown(f"<div style='font-size: 14px; line-height: 1.6;'>{preview_body}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size: 14px;'>{s_temp['body'].format(nickname=n_list[0])}</div>", unsafe_allow_html=True)
             if os.path.exists(IMAGE_PATH):
-                st.image(IMAGE_PATH, width=220, caption="첨부 명함")
+                st.image(IMAGE_PATH, width=220)
 
         if st.button(f"🚀 {len(n_list)}명에게 발송 시작", type="primary", use_container_width=True):
             user_id = st.secrets["GMAIL_USER"] if platform == "Gmail" else st.secrets["NAVER_USER"]
@@ -115,19 +107,18 @@ with tab1:
             status_text = st.empty()
             success_count = 0
 
-            # 이미지 데이터 로드
             img_data, f_ext = None, "png"
             if os.path.exists(IMAGE_PATH):
                 with open(IMAGE_PATH, 'rb') as f: img_data = f.read()
                 f_ext = os.path.splitext(IMAGE_PATH)[1][1:].lower()
                 if f_ext == 'jpg': f_ext = 'jpeg'
 
-            # --- 루프 시작 ---
+            # 발송 루프
             for i, (nick, email) in enumerate(zip(n_list, e_list)):
                 status_text.text(f"⏳ 발송 중: {nick} ({i+1}/{len(n_list)})")
                 
                 try:
-                    # 매번 새로 연결하여 'connect first' 오류 방지
+                    # 서버 연결 (매번 새로 연결하여 안정성 확보)
                     if platform == "Naver":
                         server = smtplib.SMTP_SSL("smtp.naver.com", 465)
                     else:
@@ -142,10 +133,11 @@ with tab1:
                     msg['Subject'] = s_temp['subject']
                     msg.add_header('Reply-To', REPLY_TO)
 
-                    final_html = f"<html><body><div style='font-family:sans-serif; font-size:14px;'>{s_temp['body'].format(nickname=nick)}</div><br><img src='cid:card' style='width:220px;'></body></html>"
+                    # HTML 조립 (명함 사이즈 small로 조정)
+                    f_html = f"<html><body><div style='font-family:sans-serif; font-size:14px;'>{s_temp['body'].format(nickname=nick)}</div><br><img src='cid:card' style='width:220px;'></body></html>"
                     msg_alt = MIMEMultipart('alternative')
                     msg.attach(msg_alt)
-                    msg_alt.attach(MIMEText(final_html, 'html', 'utf-8'))
+                    msg_alt.attach(MIMEText(f_html, 'html', 'utf-8'))
 
                     if img_data:
                         image = MIMEImage(img_data, _subtype=f_ext)
@@ -160,7 +152,7 @@ with tab1:
                 except Exception as e:
                     status = f"실패: {e}"
 
-                # 로그 기록
+                # DB 기록
                 conn = sqlite3.connect('mail_history.db')
                 conn.execute("INSERT INTO send_log (brand, type, nickname, email, status, sent_at) VALUES (?, ?, ?, ?, ?, ?)",
                              (brand_choice, type_choice, nick, email, status, datetime.datetime.now().strftime("%y/%m/%d %H:%M")))
@@ -169,7 +161,6 @@ with tab1:
                 progress.progress((i + 1) / len(n_list))
                 time.sleep(1.2)
 
-            # --- 결과 보고 및 초기화 ---
             if success_count > 0:
                 st.success(f"🎉 총 {success_count}건 발송 성공!")
                 st.session_state.nick_raw = ""
@@ -177,7 +168,7 @@ with tab1:
                 time.sleep(2)
                 st.rerun()
             else:
-                st.error("❌ 발송에 실패했습니다. 로그를 확인해주세요.")
+                st.error("❌ 발송에 실패했습니다. 네이버/지메일 앱 비밀번호와 SMTP 설정을 확인해주세요.")
 
 with tab2:
     st.subheader("📊 발송 기록")
