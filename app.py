@@ -3,6 +3,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
+from email.mime.application import MIMEApplication # PPT 첨부용
 import pandas as pd
 import sqlite3
 import datetime
@@ -11,26 +12,32 @@ import os
 
 # --- [1. 기본 설정 및 보안] ---
 # 수신 및 회신 주소 설정
-REPLY_TO = "hcommerceinc1@gmail.com"
-IMAGE_PATH = "명함.png" # 💡 같은 폴더에 '명함.png' 파일이 있어야 합니다.
+REPLY_TO = "hcommerceinc1@gmail.com" [cite: 1]
+IMAGE_PATH = "명함.png" [cite: 1]
 
-# 데이터베이스 초기화 (발송 로그 기록용)
+# 브랜드별 PPT 제안서 매칭
+PPT_FILES = {
+    "MELV": "MELV_커머스_제안서.pptx",
+    "SOLV": "SOLV_커머스_제안서.pptx"
+}
+
+# 데이터베이스 초기화 (사용자 DB 스키마 반영)
 def init_db():
-    conn = sqlite3.connect('mail_history.db')
+    conn = sqlite3.connect('mail_log.db')
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS send_log 
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT, brand TEXT, type TEXT, nickname TEXT, email TEXT, status TEXT, sent_at TEXT)''')
+                 (channel_name TEXT, email TEXT, status TEXT, sent_at TEXT)''')
     conn.commit()
     conn.close()
 
 init_db()
 
 # --- [2. 원본 템플릿 데이터베이스 (mail_send.py 문구 100% 복구)] ---
-# '크리에이터님' 부분을 '{nickname}님'으로 자동 치환되도록 설정했습니다.
+# '크리에이터님'을 '{nickname}님'으로 변경하여 개인화했습니다. 
 templates = {
     'MELV': {
         'commerce': {
-            'subject': '[제안] 뷰티 브랜드 멜브(MELV) 커머스 협업 제안드립니다.',
+            'subject': '[제안] 뷰티 브랜드 멜브(MELV) 커머스 협업 제안드립니다.', [cite: 1]
             'body': """안녕하세요 {nickname}님, MELV MD 박혜란입니다.
 
 저희 뷰티 브랜드 멜브(MELV)의 제품 무드와 시너지가 날 것 같아 함께 수익 쉐어형 커머스(공구)를 진행하고자 제안드립니다.
@@ -50,10 +57,10 @@ https://a-bly.com/app/markets/108879/
 관련하여 상세 제안서 검토를 희망하시거나 미팅이 가능하시다면 회신 부탁드립니다.
 
 감사합니다.
-박혜란 드림"""
+박혜란 드림""" [cite: 1]
         },
         'seeding': {
-            'subject': '[협찬] 뷰티 브랜드 멜브(MELV) 제품 시딩 제안드립니다.',
+            'subject': '[협찬] 뷰티 브랜드 멜브(MELV) 제품 시딩 제안드립니다.', [cite: 1]
             'body': """안녕하세요 {nickname}님, MELV MD 박혜란입니다.
 
 크리에이터님의 뷰티 콘텐츠 무드와 저희 브랜드 멜브(MELV)의 결이 정말 잘 어울릴 것 같아, 제품 시딩(협찬)을 제안드리고자 연락드렸습니다.
@@ -73,12 +80,12 @@ https://a-bly.com/app/markets/108879/
 제품 수령을 희망하신다면 [성함/연락처/주소]를 기재하여 편하게 회신 부탁드리겠습니다.
 
 감사합니다.
-박혜란 드림"""
+박혜란 드림""" [cite: 1]
         }
     },
     'SOLV': {
         'commerce': {
-            'subject': '[제안] 뷰티 브랜드 솔브(SOLV) 커머스 협업 제안드립니다.',
+            'subject': '[제안] 뷰티 브랜드 솔브(SOLV) 커머스 협업 제안드립니다.', [cite: 1]
             'body': """안녕하세요 {nickname}님, SOLV 담당자 박혜란입니다.
 
 평소 올려주시는 콘텐츠를 인상 깊게 보았습니다. 저희 브랜드 솔브(SOLV)와 크리에이터님이 함께 시너지를 낼 수 있는 수익 쉐어형 커머스(공구) 파트너십을 제안드립니다.
@@ -98,10 +105,10 @@ https://solv.co.kr/aboutus/productstory.html
 상세 제안서 검토나 미팅 일정을 잡고자 하신다면 편하게 회신 부탁드립니다.
 
 감사합니다.
-박혜란 드림"""
+박혜란 드림""" [cite: 1]
         },
         'seeding': {
-            'subject': '[협찬] 뷰티 브랜드 솔브(SOLV) 화잘먹 모델링팩 시딩 제안드립니다.',
+            'subject': '[협찬] 뷰티 브랜드 솔브(SOLV) 화잘먹 모델링팩 시딩 제안드립니다.', [cite: 1]
             'body': """안녕하세요 {nickname}님, SOLV 담당자 박혜란입니다.
 
 크리에이터님 특유의 맑은 분위기와 저희 브랜드 솔브(SOLV)가 만나면 좋은 시너지가 날 것 같아 제품 시딩(협찬)을 제안드립니다.
@@ -116,15 +123,17 @@ https://solv.co.kr/aboutus/productstory.html
 형식적인 리뷰보다는, 평소 크리에이터님 특유의 무드로 '화잘먹 윤광 코팅' 효과를 일상 속에서 예쁘게 보여주시면 충분합니다. 🩵
 
 더불어, 업로드하실 때 솔브 공식 계정(@solv.kr) 태그와 함께 제품 판매 링크를 걸어주시면 저희에게 정말 큰 힘이 될 것 같습니다!
+이번 만남을 시작으로 좋은 인연이 닿아 추후 커머스 등으로 관계를 확장해 나가길 기대합니다.
+
 제품 수령을 희망하신다면 [성함/연락처/주소]를 기재하여 편하게 회신 부탁드리겠습니다.
 
 감사합니다.
-박혜란 드림"""
+박혜란 드림""" [cite: 1]
         }
     },
     'UPPR': {
         'commerce': {
-            'subject': '[제안] 라이프/패션 브랜드 어퍼(UPPR) 커머스 협업 제안드립니다.',
+            'subject': '[제안] 라이프/패션 브랜드 어퍼(UPPR) 커머스 협업 제안드립니다.', [cite: 1]
             'body': """안녕하세요 {nickname}님, UPPR 담당자 박혜란입니다.
 
 저희 브랜드 어퍼(UPPR)의 힙한 무드와 크리에이터님의 핏이 아주 잘 맞을 것 같아, 판매 수익 쉐어형 커머스(공구) 진행을 제안드리고자 연락드렸습니다.
@@ -144,10 +153,10 @@ https://smartstore.naver.com/uppr
 관련하여 상세 제안서 확인이 필요하시거나 논의할 부분이 있으시다면 언제든 회신 부탁드립니다.
 
 감사합니다.
-박혜란 드림"""
+박혜란 드림""" [cite: 1]
         },
         'seeding': {
-            'subject': '[협찬] 라이프/패션 브랜드 어퍼(UPPR) 제품 시딩 제안드립니다.',
+            'subject': '[협찬] 라이프/패션 브랜드 어퍼(UPPR) 제품 시딩 제안드립니다.', [cite: 1]
             'body': """안녕하세요 {nickname}님, UPPR 담당자 박혜란입니다.
 
 평소 올려주시는 감각적인 데일리룩 코디를 잘 보고 있어, 저희 어퍼(UPPR) 브랜드의 제품을 꼭 한번 경험해 보셨으면 하는 마음에 시딩(협찬)을 제안드립니다.
@@ -158,13 +167,16 @@ https://smartstore.naver.com/uppr
 제품 확인하기
 https://smartstore.naver.com/uppr
 
-이번 협찬은 제품 착용 후 인스타그램(피드 또는 릴스)에 1회 업로드해 주시는 형태로 진행하고자 합니다. 
+이번 협찬은 제품 착용 후 인스타그램(피드 또는 릴스)에 1회 업로드해 주시는 형태로 진행고자 합니다. 
 딱딱한 리뷰 형식보다는, 평소 크리에이터님이 즐겨 입으시는 데일리룩에 가볍게 툭 매치해서 힙하고 편안한 꾸안꾸룩으로 연출해 주시면 정말 좋을 것 같아요! 🧢
 
-제품 수령을 원하신다면 [성함/연락처/주소]와 함께 [원하시는 품목 및 사이즈]를 기재하여 편하게 회신 부탁드리겠습니다.
+게시물 작성 시 저희 어퍼 공식 계정(@uppr_official) 태그와 함께 전달해 드릴 제품 판매 링크도 같이 남겨주시면 정말 감사하겠습니다.
+만족스러운 핏을 경험하셨다면 추후 더 큰 비즈니스 협업으로도 이어질 수 있기를 희망합니다.
+
+제품 수령을 원하신다면 [성함/연락처/주소]와 함께 [원하시는 품목(코듀로이 볼캡 또는 시그니처 체크셔츠) 및 사이즈]를 기재하여 편하게 회신 부탁드리겠습니다.
 
 감사합니다.
-박혜란 드림"""
+박혜란 드림""" [cite: 1]
         }
     }
 }
@@ -173,51 +185,42 @@ https://smartstore.naver.com/uppr
 st.set_page_config(page_title="Glowup Rizz 대량 발송기", layout="wide")
 tab1, tab2 = st.tabs(["✉️ 메일 발송", "📊 발송 로그"])
 
-# 입력창 초기화를 위한 세션 상태 설정
-if 'nick_input' not in st.session_state: st.session_state.nick_input = ""
-if 'email_input' not in st.session_state: st.session_state.email_input = ""
+if 'n_input' not in st.session_state: st.session_state.n_input = ""
+if 'e_input' not in st.session_state: st.session_state.e_input = ""
 
 with tab1:
     st.title("✉️ 초개인화 대량 발송 시스템")
     
-    col_set1, col_set2, col_set3 = st.columns([1, 1, 1])
-    with col_set1:
-        platform = st.radio("발송 계정 선택", ["Gmail", "Naver"], horizontal=True)
-    with col_set2:
-        brand_choice = st.selectbox("브랜드 선택", ["MELV", "SOLV", "UPPR"])
-    with col_set3:
-        type_choice = st.selectbox("템플릿 종류", ["commerce", "seeding"], format_func=lambda x: "커머스 제안" if x == "commerce" else "시딩 제안")
+    col1, col2, col3 = st.columns(3)
+    with col1: platform = st.radio("발송 계정 선택", ["Gmail", "Naver"], horizontal=True)
+    with col2: brand_choice = st.selectbox("브랜드 선택", ["MELV", "SOLV", "UPPR"])
+    with col3: type_choice = st.selectbox("템플릿 종류", ["commerce", "seeding"], format_func=lambda x: "커머스 제안" if x == "commerce" else "시딩 제안")
     
     sender_name = st.text_input("담당자 서명 이름", "박혜란")
 
     st.divider()
 
-    col_in1, col_in2 = st.columns(2)
-    with col_in1:
-        st.session_state.nick_input = st.text_area("1. 닉네임 리스트 (줄바꿈 구분)", value=st.session_state.nick_input, height=180)
-    with col_in2:
-        st.session_state.email_input = st.text_area("2. 이메일 리스트 (줄바꿈 구분)", value=st.session_state.email_input, height=180)
+    ci1, ci2 = st.columns(2)
+    with ci1: st.session_state.n_input = st.text_area("1. 닉네임 리스트 (줄바꿈 구분)", value=st.session_state.n_input, height=180)
+    with ci2: st.session_state.e_input = st.text_area("2. 이메일 리스트 (줄바꿈 구분)", value=st.session_state.e_input, height=180)
 
-    # 데이터 추출 및 빈 줄 제거
-    nicks = [n.strip() for n in st.session_state.nick_input.split('\n') if n.strip()]
-    emails = [e.strip() for e in st.session_state.email_input.split('\n') if e.strip()]
+    nicks = [n.strip() for n in st.session_state.n_input.split('\n') if n.strip()]
+    emails = [e.strip() for e in st.session_state.e_input.split('\n') if e.strip()]
     
     if nicks and emails:
         st.subheader("👀 실시간 미리보기 (첫 번째 대상)")
-        selected_temp = templates[brand_choice.lower() if brand_choice.lower() in templates else brand_choice][type_choice]
-        preview_body = selected_temp['body'].format(nickname=nicks[0])
+        s_temp = templates[brand_choice][type_choice]
+        p_body = s_temp['body'].format(nickname=nicks[0])
         
         with st.container(border=True):
-            st.markdown(f"**제목:** {selected_temp['subject']}")
-            st.markdown(f"**수신:** {nicks[0]} ({emails[0]})")
+            st.markdown(f"**제목:** {s_temp['subject']}")
+            if type_choice == 'commerce' and brand_choice in PPT_FILES:
+                st.info(f"📎 첨부 예정: {PPT_FILES[brand_choice]}")
             st.divider()
-            # 이메일 본문 (줄바꿈 처리)
-            st.markdown(f"<div style='font-size: 14px; line-height: 1.6;'>{preview_body.replace('\\n', '<br>')}</div>", unsafe_allow_html=True)
-            if os.path.exists(IMAGE_PATH):
-                st.image(IMAGE_PATH, width=230, caption="첨부될 명함 이미지")
+            st.markdown(f"<div style='font-size: 14px; line-height: 1.6;'>{p_body.replace('\\n', '<br>')}</div>", unsafe_allow_html=True)
+            if os.path.exists(IMAGE_PATH): st.image(IMAGE_PATH, width=230)
 
         if st.button(f"🚀 {len(nicks)}명에게 일괄 발송 시작", type="primary", use_container_width=True):
-            # 시크릿 설정 로드
             user_id = st.secrets["GMAIL_USER"] if platform == "Gmail" else st.secrets["NAVER_USER"]
             user_pw = st.secrets["GMAIL_PW"] if platform == "Gmail" else st.secrets["NAVER_PW"]
             
@@ -225,74 +228,61 @@ with tab1:
             status_text = st.empty()
             success_count = 0
 
-            # 이미지 데이터 로드
-            img_data, f_ext = None, "png"
-            if os.path.exists(IMAGE_PATH):
-                with open(IMAGE_PATH, 'rb') as f: img_data = f.read()
-                f_ext = os.path.splitext(IMAGE_PATH)[1][1:].lower()
-                if f_ext == 'jpg': f_ext = 'jpeg'
+            try:
+                img_data, f_ext = None, "png"
+                if os.path.exists(IMAGE_PATH):
+                    with open(IMAGE_PATH, 'rb') as f: img_data = f.read() [cite: 1]
+                    f_ext = os.path.splitext(IMAGE_PATH)[1][1:].lower() [cite: 1]
+                    if f_ext == 'jpg': f_ext = 'jpeg' [cite: 1]
 
-            # 발송 루프
-            for i, (nick, email) in enumerate(zip(nicks, emails)):
-                status_text.text(f"⏳ 발송 중: {nick} ({i+1}/{len(nicks)})")
-                
-                try:
-                    # 플랫폼별 SMTP 연결 (매번 연결하여 끊김 방지)
+                for i, (nick, email) in enumerate(zip(nicks, emails)):
+                    status_text.text(f"⏳ 발송 중: {nick} ({i+1}/{len(nicks)})")
+                    
                     if platform == "Naver":
                         server = smtplib.SMTP_SSL("smtp.naver.com", 465)
                     else:
-                        server = smtplib.SMTP("smtp.gmail.com", 587)
-                        server.starttls()
+                        server = smtplib.SMTP("smtp.gmail.com", 587) [cite: 1]
+                        server.starttls() [cite: 1]
                     
-                    server.login(user_id, user_pw)
+                    server.login(user_id, user_pw) [cite: 1]
 
                     msg = MIMEMultipart('related')
-                    msg['From'] = f"{sender_name} <{user_id}>"
-                    msg['To'] = email
-                    msg['Subject'] = selected_temp['subject']
-                    msg.add_header('Reply-To', REPLY_TO)
+                    msg['From'] = f"{sender_name} <{user_id}>"; msg['To'] = email
+                    msg['Subject'] = s_temp['subject']; msg.add_header('Reply-To', REPLY_TO) [cite: 1]
 
-                    # 본문 HTML 변환
-                    final_html = f"<html><body><div style='font-family:sans-serif; font-size:14px; line-height:1.6;'>{selected_temp['body'].format(nickname=nick).replace('\\n', '<br>')}</div><br><img src='cid:card' style='width:230px;'></body></html>"
-                    msg_alt = MIMEMultipart('alternative')
-                    msg.attach(msg_alt)
-                    msg_alt.attach(MIMEText(final_html, 'html', 'utf-8'))
+                    f_html = f"<html><body><div style='font-family:sans-serif; font-size:14px;'>{s_temp['body'].format(nickname=nick).replace('\\n', '<br>')}</div><br><img src='cid:card' style='width:230px;'></body></html>"
+                    msg_alt = MIMEMultipart('alternative'); msg.attach(msg_alt)
+                    msg_alt.attach(MIMEText(f_html, 'html', 'utf-8'))
 
                     if img_data:
-                        image = MIMEImage(img_data, _subtype=f_ext)
+                        image = MIMEImage(img_data, _subtype=f_ext) [cite: 1]
                         image.add_header('Content-ID', '<card>')
                         msg.attach(image)
 
-                    server.send_message(msg)
-                    server.quit()
-                    
-                    status = "성공"
+                    if type_choice == 'commerce' and brand_choice in PPT_FILES:
+                        ppt_path = PPT_FILES[brand_choice]
+                        if os.path.exists(ppt_path):
+                            with open(ppt_path, "rb") as f:
+                                part = MIMEApplication(f.read(), Name=os.path.basename(ppt_path))
+                                part['Content-Disposition'] = f'attachment; filename="{os.path.basename(ppt_path)}"'
+                                msg.attach(part)
+
+                    server.send_message(msg); server.quit()
                     success_count += 1
-                except Exception as e:
-                    status = f"실패: {e}"
+                    
+                    conn = sqlite3.connect('mail_log.db')
+                    conn.execute("INSERT INTO send_log (channel_name, email, status, sent_at) VALUES (?, ?, ?, ?)",
+                                 (nick, email, "성공", datetime.datetime.now().strftime("%y/%m/%d %H:%M")))
+                    conn.commit(); conn.close()
+                    
+                    progress.progress((i + 1) / len(nicks)); time.sleep(1.5)
 
-                # 발송 로그 저장
-                conn = sqlite3.connect('mail_history.db')
-                conn.execute("INSERT INTO send_log (brand, type, nickname, email, status, sent_at) VALUES (?, ?, ?, ?, ?, ?)",
-                             (brand_choice, type_choice, nick, email, status, datetime.datetime.now().strftime("%y/%m/%d %H:%M")))
-                conn.commit(); conn.close()
-                
-                progress.progress((i + 1) / len(nicks))
-                time.sleep(1.5) # 안정적 발송을 위한 대기 시간
+                st.success(f"🎉 총 {success_count}건 발송 성공!"); st.session_state.n_input, st.session_state.e_input = "", ""; time.sleep(2); st.rerun()
 
-            # 결과 처리 및 입력창 비우기
-            if success_count > 0:
-                st.success(f"🎉 총 {success_count}건 발송 성공!")
-                st.session_state.nick_input = ""
-                st.session_state.email_input = ""
-                time.sleep(2)
-                st.rerun()
-            else:
-                st.error("❌ 발송에 실패했습니다. 로그를 확인해주세요.")
+            except Exception as e: st.error(f"❌ 연결 오류: {e}")
 
 with tab2:
-    st.subheader("📊 최근 발송 기록")
-    conn = sqlite3.connect('mail_history.db')
-    log_df = pd.read_sql_query("SELECT * FROM send_log ORDER BY id DESC", conn)
-    conn.close()
-    st.dataframe(log_df, use_container_width=True, hide_index=True)
+    st.subheader("📊 발송 로그")
+    conn = sqlite3.connect('mail_log.db')
+    log_df = pd.read_sql_query("SELECT * FROM send_log ORDER BY sent_at DESC", conn)
+    conn.close(); st.dataframe(log_df, use_container_width=True, hide_index=True)
