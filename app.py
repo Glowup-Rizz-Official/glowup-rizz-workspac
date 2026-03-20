@@ -148,10 +148,14 @@ with tab1:
                     msg_alt.attach(MIMEText(final_html, 'html', 'utf-8'))
 
                     if img_data:
-                        image = MIMEImage(img_data)
-                        image.add_header('Content-ID', '<card>')
-                        msg.attach(image)
+    # 파일 확장자를 직접 추출하여 알려줍니다. 
+    file_ext = os.path.splitext(IMAGE_PATH)[1][1:].lower()
+    if file_ext == 'jpg': file_ext = 'jpeg'
+    if not file_ext: file_ext = 'png' # 기본값 설정 
 
+    image = MIMEImage(img_data, _subtype=file_ext) # 형식을 명시함 
+    image.add_header('Content-ID', '<card>')
+    msg.attach(image)
                     try:
                         server.send_message(msg)
                         status = "성공"
